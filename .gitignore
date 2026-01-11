@@ -1,0 +1,31 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environment
+venv/
+
+# Ignore environment variables file
+.env
+
+# Ignore history files (if using VS Code extensions)
+.history/
+
+# Ignore system files
+.DS_Store
+
+# Ignore logs
+*.log
+
+# Ignore compiled files
+*.so
+*.o
+*.out
+*.a
+*.class
+*.jar
+*.exe
+*.dll
+*.pdb
+*.app
+*.dSYM/
