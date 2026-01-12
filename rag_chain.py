@@ -96,7 +96,7 @@ def create_rag_chain(retriever, model_name="llama-2-7b"):
 
     # Initialize the Worker AI LLM
     # Read endpoint from environment for flexible deployment; fall back to default if unset.
-    endpoint = os.getenv("WORKER_ENDPOINT", "https://worker-name.shindeprerna1012.workers.dev")
+    endpoint = os.getenv("WORKER_ENDPOINT")
     llm = WorkerAILLM(endpoint=endpoint)
 
     # Create the RetrievalQA chain

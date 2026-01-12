@@ -80,6 +80,7 @@ def get_db_connection():
         password=cfg["password"],
         host=cfg["host"],
         port=cfg["port"],
+        sslmode="require",  # Supabase and most hosted Postgres instances expect SSL
     )
 
 
@@ -121,7 +122,7 @@ if st.button("Index Sources"):
 
         connection_string = (
             f"postgresql://{db_cfg['user']}:{password_encoded}"
-            f"@{db_cfg['host']}:{db_cfg['port']}/{db_cfg['name']}"
+            f"@{db_cfg['host']}:{db_cfg['port']}/{db_cfg['name']}?sslmode=require"
         )
 
         vector_store = get_vector_store(connection_string, table_name="url_embeddings")
