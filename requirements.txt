@@ -1,8 +1,12 @@
 streamlit
 langchain
+langchain-community
+langchain-core
+langchain-classic
 sentence-transformers
 psycopg2-binary
 pgvector
-ollama
 beautifulsoup4
 langchain-text-splitters
+requests
+python-dotenv

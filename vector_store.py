@@ -24,5 +24,4 @@ def get_vector_store(connection_string, table_name="url_embeddings"):
         collection_name=table_name,
         connection_string=connection_string,
     )
-
     return vector_store

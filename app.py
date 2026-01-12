@@ -1,38 +1,66 @@
 import streamlit as st
 import psycopg2
 import os
-from rag_chain import create_rag_chain  # Import your RAG chain function
-from vector_store import get_vector_store  # Import vector store setup
+from dotenv import load_dotenv
+from rag_chain import create_rag_chain 
+from vector_store import get_vector_store  
 from ingestion import index_url_into_vector_store
+
+
+# Load environment variables from a local .env file 
+load_dotenv()
+
+
+def get_db_config():
+    """Read database configuration strictly from environment variables.
+
+    Required: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD.
+    Optional: DB_PORT (defaults to 5432 if missing/invalid).
+    """
+
+    db_host = os.getenv("DB_HOST")
+    db_name = os.getenv("DB_NAME")
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_port_raw = os.getenv("DB_PORT", "5432")
+
+    missing = [
+        name
+        for name, value in [
+            ("DB_HOST", db_host),
+            ("DB_NAME", db_name),
+            ("DB_USER", db_user),
+            ("DB_PASSWORD", db_password),
+        ]
+        if not value
+    ]
+    if missing:
+        raise ValueError(
+            "Missing required database environment variables: " + ", ".join(missing)
+        )
+
+    db_port = int(db_port_raw) if db_port_raw.isdigit() else 5432
+
+    return {
+        "host": db_host,
+        "name": db_name,
+        "user": db_user,
+        "password": db_password,
+        "port": db_port,
+    }
 
 
 # Database connection setup
 def get_db_connection():
-    """Return a psycopg2 connection using .env configuration.
-
-    Handles missing or non-numeric DB_PORT values gracefully.
-    """
-    db_port_raw = os.getenv("DB_PORT")
-    db_port = int(db_port_raw) if db_port_raw and db_port_raw.isdigit() else 5432
-
-    db_host_raw = os.getenv("DB_HOST")
-    db_host = db_host_raw if db_host_raw and db_host_raw.lower() != "none" else "localhost"
-
-    db_name_raw = os.getenv("DB_NAME")
-    db_name = db_name_raw if db_name_raw and db_name_raw.lower() != "none" else "universal_url_research"
-
-    db_user_raw = os.getenv("DB_USER")
-    db_user = db_user_raw if db_user_raw and db_user_raw.lower() != "none" else "postgres"
-
-    db_password_raw = os.getenv("DB_PASSWORD")
-    db_password = db_password_raw if db_password_raw and db_password_raw.lower() != "none" else "password"
+    """Return a psycopg2 connection using environment configuration only."""
+    cfg = get_db_config()
 
     return psycopg2.connect(
-        dbname=db_name,
-        user=db_user,
-        password=db_password,
-        host=db_host,
-        port=db_port,
+        dbname=cfg["name"],
+        user=cfg["user"],
+        password=cfg["password"],
+        host=cfg["host"],
+        port=cfg["port"],
     )
 
 
@@ -66,25 +94,12 @@ for i in range(num_urls):
 # Step 3: Index Sources Button
 if st.button("Index Sources"):
     try:
-        # Initialize vector store and RAG chain using the same DB settings from .env
-        db_port_raw = os.getenv("DB_PORT")
-        db_port_str = db_port_raw if db_port_raw and db_port_raw.isdigit() else "5432"
-
-        db_host_raw = os.getenv("DB_HOST")
-        db_host_str = db_host_raw if db_host_raw and db_host_raw.lower() != "none" else "localhost"
-
-        db_name_raw = os.getenv("DB_NAME")
-        db_name = db_name_raw if db_name_raw and db_name_raw.lower() != "none" else "universal_url_research"
-
-        db_user_raw = os.getenv("DB_USER")
-        db_user = db_user_raw if db_user_raw and db_user_raw.lower() != "none" else "postgres"
-
-        db_password_raw = os.getenv("DB_PASSWORD")
-        db_password = db_password_raw if db_password_raw and db_password_raw.lower() != "none" else "password"
+        # Initialize vector store and RAG chain using DB settings from environment
+        db_cfg = get_db_config()
 
         connection_string = (
-            f"postgresql://{db_user}:{db_password}"\
-            f"@{db_host_str}:{db_port_str}/{db_name}"\
+            f"postgresql://{db_cfg['user']}:{db_cfg['password']}"
+            f"@{db_cfg['host']}:{db_cfg['port']}/{db_cfg['name']}"
         )
 
         vector_store = get_vector_store(connection_string, table_name="url_embeddings")

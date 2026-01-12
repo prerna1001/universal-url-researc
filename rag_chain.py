@@ -4,6 +4,7 @@ from langchain_core.language_models import BaseLLM as LLM
 from langchain_core.outputs import LLMResult, Generation
 from typing import Optional, List
 
+import os
 import requests
 
 class WorkerAILLM(LLM):
@@ -94,7 +95,9 @@ def create_rag_chain(retriever, model_name="llama-2-7b"):
 
 
     # Initialize the Worker AI LLM
-    llm = WorkerAILLM(endpoint="https://worker-name.shindeprerna1012.workers.dev")
+    # Read endpoint from environment for flexible deployment; fall back to default if unset.
+    endpoint = os.getenv("WORKER_ENDPOINT", "https://worker-name.shindeprerna1012.workers.dev")
+    llm = WorkerAILLM(endpoint=endpoint)
 
     # Create the RetrievalQA chain
     rag_chain = RetrievalQA.from_chain_type(
