@@ -1,0 +1,8 @@
+streamlit
+langchain
+sentence-transformers
+psycopg2-binary
+pgvector
+ollama
+beautifulsoup4
+langchain-text-splitters

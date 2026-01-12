@@ -1,0 +1,8 @@
+name = "worker-name"
+compatibility_date = "2026-01-11"
+main = "worker.js"
+
+[ai]
+binding = "AI"
+type = "llm"
+model = "@cf/meta/llama-3-8b-instruct"
