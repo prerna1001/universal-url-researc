@@ -1,6 +1,7 @@
 import streamlit as st
 import psycopg2
 import os
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from rag_chain import create_rag_chain 
 from vector_store import get_vector_store  
@@ -17,12 +18,30 @@ def get_db_config():
     Required: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD.
     Optional: DB_PORT (defaults to 5432 if missing/invalid).
     """
+    # Helper that prefers real environment variables, but also falls back to
+    # Streamlit Cloud secrets (st.secrets) when running in the hosted app.
+    def _get(name: str, default: str | None = None) -> str | None:
+        # 1) Standard OS env (local .env via load_dotenv or platform-level env)
+        value = os.getenv(name)
+        if value:
+            return value
 
-    db_host = os.getenv("DB_HOST")
-    db_name = os.getenv("DB_NAME")
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_port_raw = os.getenv("DB_PORT", "5432")
+        # 2) Streamlit secrets (used on Streamlit Cloud)
+        try:
+            if name in st.secrets:
+                return str(st.secrets[name])
+        except Exception:
+            # If st.secrets is not available or behaves unexpectedly, ignore
+            # and fall through to default.
+            pass
+
+        return default
+
+    db_host = _get("DB_HOST")
+    db_name = _get("DB_NAME")
+    db_user = _get("DB_USER")
+    db_password = _get("DB_PASSWORD")
+    db_port_raw = _get("DB_PORT", "5432") or "5432"
 
     missing = [
         name
@@ -97,8 +116,11 @@ if st.button("Index Sources"):
         # Initialize vector store and RAG chain using DB settings from environment
         db_cfg = get_db_config()
 
+        # URL-encode password so special characters like '@' don't break the URI
+        password_encoded = quote_plus(db_cfg["password"])
+
         connection_string = (
-            f"postgresql://{db_cfg['user']}:{db_cfg['password']}"
+            f"postgresql://{db_cfg['user']}:{password_encoded}"
             f"@{db_cfg['host']}:{db_cfg['port']}/{db_cfg['name']}"
         )
 
