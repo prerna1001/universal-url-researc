@@ -1,5 +1,18 @@
 # Universal URL Research Tool
 
+## Technology Stack
+
+| Layer        | Tools & Libraries |
+|--------------|-------------------|
+| Frontend     | Streamlit |
+| Orchestration | LangChain |
+| Backend      | Python |
+| Database     | PostgreSQL, pgvector |
+| Embeddings   | sentence-transformers |
+| LLM          | Cloudflare Workers AI (LLaMA 3) |
+| Data Fetch   | Requests, BeautifulSoup |
+| Chunking     | LangChain Text Splitters |
+
 This project is a small MVP-style Retrieval-Augmented Generation (RAG) app that lets you:
 
 - Paste one or more URLs.
