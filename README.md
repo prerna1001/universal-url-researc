@@ -1,13 +1,17 @@
 # Universal URL Research Tool
 
+Live demo: https://universal-url-researc-7jj88zvtofjkvegmykp447.streamlit.app/
+
+Deployed as a live app on **Streamlit Cloud**, backed by **Supabase PostgreSQL + pgvector** and a **Cloudflare Worker AI** LLM endpoint.
+
 ## Technology Stack
 
 | Layer        | Tools & Libraries |
 |--------------|-------------------|
 | Frontend     | Streamlit |
 | Orchestration | LangChain |
-| Backend      | Python |
-| Database     | PostgreSQL, pgvector |
+| Backend      | Python (Streamlit app on Streamlit Cloud) |
+| Database     | PostgreSQL + pgvector (Supabase Session Pooler) |
 | Embeddings   | sentence-transformers |
 | LLM          | Cloudflare Workers AI (LLaMA 3) |
 | Data Fetch   | Requests, BeautifulSoup |
