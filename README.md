@@ -4,6 +4,27 @@ Live demo: https://universal-url-researc-7jj88zvtofjkvegmykp447.streamlit.app/
 
 Deployed as a live app on **Streamlit Cloud**, backed by **Supabase PostgreSQL + pgvector** and a **Cloudflare Worker AI** LLM endpoint.
 
+## What This Project Is For
+
+Universal URL Research Tool is built for researchers, analysts, and students who want to quickly study information from the open web without manually copy‑pasting content.
+
+At a high level, it lets you:
+
+- Add multiple URLs (articles, blog posts, reports, documentation, etc.).
+- Automatically fetch, clean, and index the content from those pages.
+- Ask natural‑language questions based **only** on the indexed pages.
+- Get concise, grounded answers with links back to the original sources.
+
+
+-Typical use cases include:
+
+- Literature and background research across many web articles.
+- Competitive/market research over product pages and blogs.
+- Trading and quantitative research using financial blogs, exchange docs, and research posts.
+- Policy, legal, or technical deep‑dives using documentation URLs.
+
+You bring the URLs; the tool does the crawling, chunking, embedding, and retrieval so you can focus on asking questions and interpreting results.
+
 ## Technology Stack
 
 | Layer        | Tools & Libraries |
