@@ -1,6 +1,7 @@
 export default {
   async fetch(request, env) {
     try {
+      const model = "@cf/meta/llama-3.1-8b-instruct-fast";
       const tasks = [];
 
       // Check if AI binding is configured
@@ -17,7 +18,7 @@ export default {
       }
 
       const aiInput = { prompt };
-      const response = await env.AI.run("@cf/meta/llama-3-8b-instruct", aiInput);
+      const response = await env.AI.run(model, aiInput);
       tasks.push({ inputs: aiInput, response });
 
       // Return response
