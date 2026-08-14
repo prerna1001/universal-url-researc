@@ -3,8 +3,8 @@ import psycopg2
 import os
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
-from rag_chain import create_rag_chain 
-from vector_store import get_vector_store  
+from rag_chain import create_rag_chain
+from vector_store import get_vector_store
 from ingestion import index_url_into_vector_store
 
 
@@ -99,6 +99,74 @@ def ensure_indexed_urls_table(conn):
         )
         conn.commit()
 
+
+def normalize_urls(raw_urls):
+    """Normalize URL inputs and drop duplicates while preserving order."""
+    normalized = []
+    seen = set()
+
+    for raw_url in raw_urls:
+        url = (raw_url or "").strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        normalized.append(url)
+
+    return normalized
+
+
+def delete_indexed_urls_except(conn, keep_urls):
+    """Remove relational URL records that are no longer part of the active run."""
+    with conn.cursor() as cur:
+        if keep_urls:
+            cur.execute(
+                "DELETE FROM indexed_urls WHERE NOT (url = ANY(%s))",
+                (keep_urls,),
+            )
+        else:
+            cur.execute("DELETE FROM indexed_urls")
+        conn.commit()
+
+
+def get_existing_indexed_urls(conn, candidate_urls):
+    """Return the subset of requested URLs already indexed in the relational table."""
+    if not candidate_urls:
+        return set()
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT url FROM indexed_urls WHERE url = ANY(%s)",
+            (candidate_urls,),
+        )
+        return {row[0] for row in cur.fetchall()}
+
+
+def delete_vector_rows_except(conn, collection_name, keep_urls):
+    """Remove vector rows whose URL metadata is outside the active URL list."""
+    with conn.cursor() as cur:
+        if keep_urls:
+            cur.execute(
+                """
+                DELETE FROM langchain_pg_embedding AS e
+                USING langchain_pg_collection AS c
+                WHERE e.collection_id = c.uuid
+                  AND c.name = %s
+                  AND COALESCE(e.cmetadata->>'url', '') <> ALL(%s)
+                """,
+                (collection_name, keep_urls),
+            )
+        else:
+            cur.execute(
+                """
+                DELETE FROM langchain_pg_embedding AS e
+                USING langchain_pg_collection AS c
+                WHERE e.collection_id = c.uuid
+                  AND c.name = %s
+                """,
+                (collection_name,),
+            )
+        conn.commit()
+
 # Title
 st.title("Universal URL Research Tool")
 
@@ -111,9 +179,15 @@ for i in range(num_urls):
     url = st.text_input(f"URL {i + 1}")
     urls.append(url)
 
+current_urls = normalize_urls(urls)
+
 # Step 3: Index Sources Button
 if st.button("Index Sources"):
     try:
+        if not current_urls:
+            st.warning("Please enter at least one URL before indexing.")
+            st.stop()
+
         # Initialize vector store and RAG chain using DB settings from environment
         db_cfg = get_db_config()
 
@@ -129,17 +203,25 @@ if st.button("Index Sources"):
         retriever = vector_store.as_retriever()
         rag_chain = create_rag_chain(retriever)
 
-        # Cache the RAG chain in session state for later question answering
-        st.session_state["rag_chain"] = rag_chain
-
         # Connect to the database and ensure the table exists
         conn = get_db_connection()
         ensure_indexed_urls_table(conn)
         cursor = conn.cursor()
 
+        # Keep only the URLs for the active indexing run.
+        delete_indexed_urls_except(conn, current_urls)
+        delete_vector_rows_except(conn, "url_embeddings", current_urls)
+        existing_urls = get_existing_indexed_urls(conn, current_urls)
+
+        active_urls = []
+        new_index_count = 0
+        failed_urls = []
+
         # Index the URLs
-        for url in urls:
-            if not url:
+        for url in current_urls:
+            if url in existing_urls:
+                st.write(f"Keeping existing index: {url}")
+                active_urls.append(url)
                 continue
 
             st.write(f"Indexing: {url}")
@@ -149,6 +231,7 @@ if st.button("Index Sources"):
                 page_text = index_url_into_vector_store(url, vector_store)
             except Exception as ingest_err:
                 st.error(f"Failed to index {url}: {ingest_err}")
+                failed_urls.append(url)
                 continue
 
             # Also store the full cleaned content in the relational table
@@ -157,11 +240,28 @@ if st.button("Index Sources"):
                 (url, page_text)
             )
             conn.commit()
+            active_urls.append(url)
+            new_index_count += 1
 
         cursor.close()
         conn.close()
 
-        st.success("Sources indexed and stored successfully!")
+        # Cache the active retrieval state only for the URLs that survived this run.
+        st.session_state["rag_chain"] = rag_chain
+        st.session_state["active_urls"] = active_urls
+
+        if active_urls and not failed_urls:
+            if new_index_count == 0:
+                st.success("Selected URLs were already indexed and are ready to use.")
+            else:
+                st.success("Sources indexed and stored successfully!")
+        elif active_urls:
+            st.warning(
+                "Some URLs are ready to use, but others failed to index. "
+                "Please review the errors above."
+            )
+        else:
+            st.warning("No URLs were successfully indexed in this run.")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
@@ -171,9 +271,15 @@ question = st.text_input("Ask a question based on the indexed URLs")
 # Step 5: Results Display
 if question:
     rag_chain = st.session_state.get("rag_chain")
+    active_urls = st.session_state.get("active_urls", [])
 
     if not rag_chain:
         st.warning("Please index some URLs first using 'Index Sources'.")
+    elif current_urls != active_urls:
+        st.warning(
+            "The current URL list does not match the last successful indexing run. "
+            "Click 'Index Sources' again before asking a question."
+        )
     else:
         try:
             result = rag_chain({"query": question})
