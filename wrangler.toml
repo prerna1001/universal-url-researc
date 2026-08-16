@@ -4,5 +4,3 @@ main = "worker.js"
 
 [ai]
 binding = "AI"
-type = "llm"
-model = "@cf/meta/llama-3.1-8b-instruct-fast"
