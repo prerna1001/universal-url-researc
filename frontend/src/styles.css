@@ -62,30 +62,30 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 30px 28px 44px;
+  padding: 18px 28px 28px;
   overflow: hidden;
 }
 
 .hero {
   flex: 0 0 auto;
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .hero h1 {
   margin: 0;
   font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  font-size: clamp(3rem, 4vw, 4.5rem);
-  line-height: 1;
+  font-size: clamp(2.6rem, 3.6vw, 4rem);
+  line-height: 0.98;
   font-weight: 600;
   letter-spacing: -0.04em;
   color: #202419;
 }
 
 .hero p {
-  margin: 16px 0 0;
-  font-size: 1.1rem;
-  line-height: 1.6;
+  margin: 8px 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
   color: var(--muted);
 }
 
@@ -103,22 +103,22 @@ a {
 
 .source-strip {
   flex: 0 0 auto;
-  padding: 22px 28px;
+  padding: 16px 22px;
   width: 100%;
   margin: 0 auto;
 }
 
 .source-strip-label {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-weight: 700;
-  font-size: 1.12rem;
+  font-size: 1.02rem;
   color: #42523d;
 }
 
 .source-strip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -132,11 +132,11 @@ a {
 }
 
 .source-pill {
-  padding: 13px 22px;
+  padding: 11px 18px;
   background: rgba(255, 253, 249, 0.92);
   border: 1px solid var(--line);
   color: #2e3527;
-  font-size: 1rem;
+  font-size: 0.98rem;
   white-space: nowrap;
 }
 
@@ -156,7 +156,7 @@ a {
 }
 
 .add-sources-button {
-  padding: 13px 24px;
+  padding: 11px 22px;
   border: none;
   background: linear-gradient(180deg, var(--coral) 0%, var(--coral-deep) 100%);
   color: #fff8f0;
@@ -165,12 +165,12 @@ a {
 }
 
 .chat-card {
-  margin-top: 20px;
+  margin-top: 14px;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 34px 32px 26px;
+  padding: 24px 28px 22px;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
