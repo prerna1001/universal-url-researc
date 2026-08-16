@@ -2,6 +2,7 @@ langchain
 langchain-community
 langchain-core
 langchain-classic
+langchain-huggingface
 sentence-transformers
 psycopg2-binary
 pgvector

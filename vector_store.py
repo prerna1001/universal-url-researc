@@ -1,5 +1,5 @@
 from langchain_community.vectorstores.pgvector import PGVector
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
 def get_vector_store(connection_string, table_name="url_embeddings"):
