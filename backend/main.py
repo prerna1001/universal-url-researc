@@ -259,9 +259,10 @@ PROMPT_ECHO_PATTERNS = [
 def sanitize_model_answer(answer: str) -> str:
     """Strip leaked prompt instructions and obvious duplicated fallback text."""
     cleaned = (answer or "").strip()
+    fallback = "I couldn't find that in the indexed sources."
 
     if not cleaned:
-        return "I couldn't find that in the indexed sources."
+        return fallback
 
     # If the model echoed the prompt, keep only the tail after the last explicit answer marker.
     if "Answer:" in cleaned:
@@ -295,7 +296,6 @@ def sanitize_model_answer(answer: str) -> str:
     cleaned = "\n".join(filtered_lines).strip()
 
     # Remove repeated fallback fragments if the model loops them.
-    fallback = "I couldn't find that in the indexed sources."
     fallback_matches = re.findall(re.escape(fallback), cleaned)
     if len(fallback_matches) > 1:
         cleaned = re.sub(
@@ -303,6 +303,15 @@ def sanitize_model_answer(answer: str) -> str:
             fallback,
             cleaned,
         ).strip()
+
+    partial_fallback_pattern = re.compile(
+        r"^"
+        + re.escape(fallback)
+        + r"(?:\s+I couldn't find that in the(?:\s+indexed(?:\s+sources?)?)?\.?)?$",
+        flags=re.IGNORECASE,
+    )
+    if partial_fallback_pattern.match(cleaned):
+        cleaned = fallback
 
     # Remove trailing note fragments that often appear after an echoed instruction block.
     cleaned = re.sub(r"\(\s*Note:.*$", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
