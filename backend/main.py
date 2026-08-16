@@ -215,15 +215,21 @@ def get_vector_indexed_urls(
 
 
 @lru_cache(maxsize=1)
-def build_rag_stack():
-    """Instantiate the vector store, retriever, and RAG chain."""
+def build_vector_store():
+    """Instantiate and cache the shared vector store."""
     db_cfg = get_db_config()
     password_encoded = quote_plus(db_cfg["password"])
     connection_string = (
         f"postgresql://{db_cfg['user']}:{password_encoded}"
         f"@{db_cfg['host']}:{db_cfg['port']}/{db_cfg['name']}?sslmode=require"
     )
-    vector_store = get_vector_store(connection_string, table_name=COLLECTION_NAME)
+    return get_vector_store(connection_string, table_name=COLLECTION_NAME)
+
+
+@lru_cache(maxsize=1)
+def build_rag_stack():
+    """Instantiate the retriever and RAG chain."""
+    vector_store = build_vector_store()
     retriever = vector_store.as_retriever(search_kwargs={"k": 4})
     rag_chain = create_rag_chain(retriever)
     return vector_store, retriever, rag_chain
@@ -259,7 +265,7 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
     if not normalized_urls:
         raise HTTPException(status_code=400, detail="Please provide at least one URL.")
 
-    vector_store, _, _ = build_rag_stack()
+    vector_store = build_vector_store()
     report: list[dict[str, str]] = []
     active_urls: list[str] = []
 
@@ -317,7 +323,7 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
                     INSERT INTO indexed_urls (url, indexed_content)
                     VALUES (%s, %s)
                     """,
-                    (url, page_text),
+                    (url, page_text[:2000]),
                 )
                 conn.commit()
 

@@ -1,5 +1,12 @@
+from functools import lru_cache
+
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_huggingface import HuggingFaceEmbeddings
+
+
+@lru_cache(maxsize=1)
+def get_embeddings():
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
 def get_vector_store(connection_string, table_name="url_embeddings"):
@@ -13,7 +20,7 @@ def get_vector_store(connection_string, table_name="url_embeddings"):
     Returns:
         PGVector: Initialized PGVector instance.
     """
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = get_embeddings()
 
     # Create (or load) an empty PGVector collection so we don't call
     # the low-level PGVector __init__ with unsupported args like `table_name`.

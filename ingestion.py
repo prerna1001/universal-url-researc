@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+MAX_HTML_BYTES = 1_500_000
+MAX_VISIBLE_TEXT_CHARS = 120_000
+
 
 def fetch_url_text(url: str) -> str:
     """Fetch a URL and return cleaned visible text.
@@ -18,7 +21,7 @@ def fetch_url_text(url: str) -> str:
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
 
-    resp = requests.get(url, timeout=20, headers=headers)
+    resp = requests.get(url, timeout=20, headers=headers, stream=True)
 
     try:
         resp.raise_for_status()
@@ -29,7 +32,33 @@ def fetch_url_text(url: str) -> str:
             raise RuntimeError(f"HTTP 403 Forbidden while fetching {url}. The site is blocking automated access.") from exc
         raise
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    content_type = (resp.headers.get("Content-Type") or "").lower()
+    if content_type and "html" not in content_type and "xml" not in content_type:
+        raise RuntimeError(
+            f"Unsupported content type for {url}: {content_type}. "
+            "Try a normal article page instead of a PDF or download page."
+        )
+
+    content_length = resp.headers.get("Content-Length")
+    if content_length and content_length.isdigit() and int(content_length) > MAX_HTML_BYTES:
+        raise RuntimeError(
+            f"{url} is too large to index on the current deployment limit. "
+            "Try a lighter article page."
+        )
+
+    body = bytearray()
+    for chunk in resp.iter_content(chunk_size=16_384):
+        if not chunk:
+            continue
+        body.extend(chunk)
+        if len(body) > MAX_HTML_BYTES:
+            raise RuntimeError(
+                f"{url} is too large to index on the current deployment limit. "
+                "Try a lighter article page."
+            )
+
+    html = body.decode(resp.encoding or "utf-8", errors="ignore")
+    soup = BeautifulSoup(html, "html.parser")
 
     # Remove script and style elements
     for tag in soup(["script", "style", "noscript"]):
@@ -39,6 +68,9 @@ def fetch_url_text(url: str) -> str:
     # Normalize whitespace
     lines = [line.strip() for line in text.splitlines()]
     text = "\n".join(line for line in lines if line)
+    if len(text) > MAX_VISIBLE_TEXT_CHARS:
+        text = text[:MAX_VISIBLE_TEXT_CHARS]
+
     return text
 
 
