@@ -264,6 +264,8 @@ def init_session_state():
     st.session_state.setdefault("active_urls", [])
     st.session_state.setdefault("chat_history", [])
     st.session_state.setdefault("last_index_report", [])
+    st.session_state.setdefault("source_urls_text", "")
+    st.session_state.setdefault("sources_panel_open", False)
 
     if not st.session_state["chat_history"]:
         st.session_state["chat_history"] = [
@@ -608,6 +610,30 @@ def render_index_report(report):
         )
 
 
+def render_index_summary(report):
+    """Render a compact indexing summary inside the source drawer."""
+    if not report:
+        st.caption("Paste one URL per line, then refresh the source set.")
+        return
+
+    success_count = sum(1 for item in report if item["state"] == "success")
+    note_count = sum(1 for item in report if item["state"] == "note")
+    warning_count = sum(1 for item in report if item["state"] == "warning")
+    error_count = sum(1 for item in report if item["state"] == "error")
+
+    if success_count or note_count:
+        st.success(
+            f"Ready: {success_count} newly indexed, {note_count} reused from the current source set."
+        )
+    if warning_count:
+        st.warning(f"Needs review: {warning_count} URL(s) fetched but did not produce usable chunks.")
+    if error_count:
+        st.error(f"Failed: {error_count} URL(s) could not be indexed.")
+
+    with st.expander("See indexing details"):
+        render_index_report(report)
+
+
 def render_chat_history():
     """Render the grounded Q&A transcript."""
     for message in st.session_state["chat_history"]:
@@ -700,58 +726,175 @@ init_session_state()
 
 st.markdown(
     """
-    <div class='hero-card'>
-      <div class='hero-kicker'>Grounded Research Workspace</div>
-      <div class='hero-title'>Universal URL Research Tool</div>
-      <div class='hero-copy'>
-        Build a focused source set, prune stale context automatically, and ask grounded
-        questions in a chat flow that keeps citations visible.
+    <style>
+    .block-container {
+      max-width: 980px;
+    }
+    .app-shell {
+      margin: 0 auto 1rem auto;
+      max-width: 920px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .app-mark {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .app-kicker {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .app-title {
+      font-size: 1.55rem;
+      line-height: 1.1;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .app-copy {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+      margin-bottom: 0.9rem;
+    }
+    .source-bar, .source-drawer, .transcript-shell {
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+    }
+    .source-bar {
+      padding: 0.95rem 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .source-bar-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .source-bar-copy {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .source-drawer {
+      padding: 1rem;
+      margin-bottom: 0.95rem;
+    }
+    .transcript-shell {
+      padding: 1rem 1rem 1.4rem 1rem;
+      min-height: 520px;
+    }
+    .transcript-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .transcript-copy {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    .toolbar-row {
+      display: flex;
+      gap: 0.65rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+    }
+    .toolbar-spacer {
+      flex: 1 1 auto;
+    }
+    @media (max-width: 900px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+    </style>
+    <div class='app-shell'>
+      <div class='topbar'>
+        <div class='app-mark'>
+          <div class='app-kicker'>Grounded Research</div>
+          <div class='app-title'>Universal URL Research Tool</div>
+        </div>
+      </div>
+      <div class='app-copy'>
+        Add a source set when you need it, then stay in one clean chat interface.
       </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-left_col, right_col = st.columns([0.9, 1.55], gap="large")
+toolbar_left, toolbar_right = st.columns([1, 1])
+with toolbar_left:
+    if st.button("Sources", use_container_width=True):
+        st.session_state["sources_panel_open"] = not st.session_state["sources_panel_open"]
+with toolbar_right:
+    if st.button("New Chat", use_container_width=True):
+        reset_chat_history(st.session_state.get("active_urls", []))
+        st.rerun()
 
-with left_col:
+st.markdown(
+    """
+    <div class='source-bar'>
+      <div class='source-bar-title'>Active source set</div>
+      <div class='source-bar-copy'>
+        Your answers should stay grounded only in the URLs currently indexed here.
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+render_source_chips(st.session_state.get("active_urls", []))
+
+if st.session_state.get("sources_panel_open"):
     st.markdown(
         """
-        <div class='control-card'>
-          <div class='panel-title'>Source Set</div>
+        <div class='source-drawer'>
+          <div class='panel-title'>Manage Sources</div>
           <div class='panel-copy'>
-            Index only the URLs you want active right now. Existing vectors for matching URLs stay.
+            Paste one URL per line. Re-indexing replaces the active set, but keeps vectors for URLs that are unchanged.
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.form("index_form", clear_on_submit=False):
-        num_urls = st.number_input(
-            "How many URLs do you want to index?",
-            min_value=1,
-            max_value=20,
-            step=1,
-            value=1,
+    with st.form("source_drawer_form", clear_on_submit=False):
+        source_text = st.text_area(
+            "URLs",
+            key="source_urls_text",
+            placeholder="https://example.com/article-1\nhttps://example.com/article-2",
+            height=160,
+            label_visibility="collapsed",
         )
+        index_clicked = st.form_submit_button("Refresh Sources")
 
-        raw_urls = []
-        for i in range(num_urls):
-            raw_urls.append(st.text_input(f"URL {i + 1}", key=f"url_{i}"))
-
-        index_clicked = st.form_submit_button("Index Sources")
-
-    current_urls = normalize_urls(raw_urls)
+    current_urls = normalize_urls(source_text.splitlines())
 
     if index_clicked:
         if not current_urls:
-            st.warning("Please enter at least one URL before indexing.")
+            st.warning("Please add at least one URL before indexing.")
         else:
             try:
                 active_urls, report, _, _ = index_active_urls(current_urls)
+                st.session_state["source_urls_text"] = "\n".join(active_urls or current_urls)
+                if active_urls:
+                    st.session_state["sources_panel_open"] = False
                 if active_urls and all(item["state"] != "error" for item in report):
-                    st.success("Active source set refreshed.")
+                    st.success("Source set refreshed.")
                 elif active_urls:
                     st.warning("Some URLs are ready, but others need attention.")
                 else:
@@ -759,53 +902,26 @@ with left_col:
             except Exception as err:
                 st.error(f"An error occurred while indexing: {err}")
 
-    st.markdown(
-        """
-        <div class='status-card' style='margin-top: 1rem;'>
-          <div class='panel-title'>Currently Indexed</div>
-          <div class='panel-copy'>
-            These are the only URLs this chat should answer from.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    render_source_chips(st.session_state.get("active_urls", []))
+    render_index_summary(st.session_state.get("last_index_report", []))
 
-    st.markdown(
-        """
-        <div class='status-card' style='margin-top: 1rem;'>
-          <div class='panel-title'>Index Report</div>
-          <div class='panel-copy'>
-            We only trust runs that produced retrievable chunks with source metadata.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    render_index_report(st.session_state.get("last_index_report", []))
-
-with right_col:
-    st.markdown(
-        """
-        <div class='chat-shell'>
-          <div class='chat-heading'>
-            <div class='panel-title'>Grounded Q&A</div>
-          </div>
-          <div class='chat-subcopy'>
-            Ask questions in plain language. Answers only count as valid when retriever-backed source URLs come back.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    render_chat_history()
+st.markdown(
+    """
+    <div class='transcript-shell'>
+      <div class='transcript-title'>Chat</div>
+      <div class='transcript-copy'>
+        Ask questions naturally. If the answer is grounded, sources will appear right under the reply.
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+render_chat_history()
 
 question = st.chat_input("Ask a question about the active source set")
 
 if question:
     current_urls = normalize_urls(
-        [st.session_state.get(f"url_{i}", "") for i in range(num_urls)]
+        st.session_state.get("source_urls_text", "").splitlines()
     )
     try:
         answer_question(question, current_urls)
