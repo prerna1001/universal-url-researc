@@ -62,23 +62,45 @@ The current stack is split cleanly into:
 
 ## Render Deployment
 
-This repo is prepared for a Render web service using Docker.
+This repo is now prepared for a split Render deployment:
+
+- **Frontend**: a static React site
+- **Backend**: a separate FastAPI web service
 
 Important files:
 
-- [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile): builds the React frontend and runs the FastAPI backend
-- [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml): declares the Render service and required environment variable names
+- [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile): backend-only container for FastAPI
+- [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml): declares both Render services
 
-Required environment variables on Render:
+Render services in the blueprint:
+
+- `universal-url-researc-ui`
+  - React static site
+  - Build command: `cd frontend && npm install && npm run build`
+- `universal-url-researc-api`
+  - FastAPI backend
+  - Connects to Supabase and the Cloudflare Worker endpoint
+
+Required backend environment variables on Render:
 
 - `DB_HOST`
 - `DB_PORT`
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
+- `HF_TOKEN`
 - `WORKER_ENDPOINT`
 
-The backend serves the built React app and the `/api/*` endpoints from the same Render service.
+Cross-service wiring:
+
+- Frontend uses `VITE_API_BASE_URL=https://universal-url-researc-api.onrender.com`
+- Backend allows `FRONTEND_ORIGIN=https://universal-url-researc-ui.onrender.com`
+
+Why this split helps:
+
+- The React app becomes a static site, so it loads faster and does not compete with indexing work.
+- The backend keeps its memory for indexing, retrieval, and database work only.
+- UI requests stay snappier even when indexing is busy.
 
 ---
 

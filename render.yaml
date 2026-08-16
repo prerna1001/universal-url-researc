@@ -1,12 +1,14 @@
 services:
   - type: web
-    name: universal-url-researc
+    name: universal-url-researc-api
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
     region: oregon
     envVars:
+      - key: FRONTEND_ORIGIN
+        value: https://universal-url-researc-ui.onrender.com
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -17,6 +19,19 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: HF_TOKEN
+        sync: false
       - key: WORKER_ENDPOINT
         sync: false
 
+  - type: web
+    name: universal-url-researc-ui
+    runtime: static
+    rootDir: .
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    region: oregon
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://universal-url-researc-api.onrender.com

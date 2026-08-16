@@ -1,6 +1,5 @@
 import os
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -8,8 +7,7 @@ import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from ingestion import index_url_into_vector_store
@@ -20,9 +18,6 @@ from vector_store import get_vector_store
 load_dotenv()
 
 COLLECTION_NAME = "url_embeddings"
-ROOT_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIST_DIR = ROOT_DIR / "frontend" / "dist"
-FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 
 
 class IndexSourcesRequest(BaseModel):
@@ -447,22 +442,16 @@ def post_chat(payload: ChatRequest):
     return result
 
 
-if FRONTEND_ASSETS_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=FRONTEND_ASSETS_DIR), name="assets")
-
-
 @app.get("/{full_path:path}")
 def serve_spa(full_path: str):
     if full_path.startswith("api/"):
         return JSONResponse({"detail": "Not found"}, status_code=404)
 
-    index_file = FRONTEND_DIST_DIR / "index.html"
-    if index_file.exists():
-        return FileResponse(index_file)
-
     return JSONResponse(
         {
-            "message": "Frontend build not found yet. Build the React app or deploy through Render."
-        },
-        status_code=503,
+            "message": "Universal URL Research Tool API is running.",
+            "health": "/api/health",
+            "sources": "/api/sources",
+            "chat": "/api/chat",
+        }
     )
