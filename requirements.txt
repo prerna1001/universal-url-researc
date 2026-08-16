@@ -7,6 +7,7 @@ pgvector
 beautifulsoup4
 langchain-text-splitters
 requests
+playwright
 python-dotenv
 fastapi
 uvicorn[standard]

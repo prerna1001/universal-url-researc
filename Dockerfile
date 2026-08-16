@@ -7,7 +7,8 @@ ENV HF_HOME=/app/.cache/huggingface
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m playwright install --with-deps chromium
 
 COPY backend ./backend
 COPY db ./db

@@ -295,7 +295,9 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
                 continue
 
             try:
-                page_text, chunk_count = index_url_into_vector_store(url, vector_store)
+                page_text, chunk_count, extraction_mode = index_url_into_vector_store(
+                    url, vector_store
+                )
             except Exception as ingest_err:  # pragma: no cover - network dependent
                 report.append(
                     {
@@ -307,14 +309,21 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
                 continue
 
             if chunk_count == 0:
+                message = (
+                    "Fetched the page, but no usable text chunks were produced. "
+                    "This page may rely on JavaScript or heavily restrict scraping."
+                )
+                if extraction_mode == "browser":
+                    message = (
+                        "Fetched the page with browser rendering, but still could not produce usable text chunks. "
+                        "This page may be access-controlled, too sparse, or intentionally difficult to scrape."
+                    )
+
                 report.append(
                     {
                         "state": "warning",
                         "url": url,
-                        "message": (
-                            "Fetched the page, but no usable text chunks were produced. "
-                            "This page may rely on JavaScript or heavily restrict scraping."
-                        ),
+                        "message": message,
                     }
                 )
                 continue
@@ -330,12 +339,18 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
                 )
                 conn.commit()
 
+            success_message = f"Stored {chunk_count} retrievable chunks."
+            if extraction_mode == "browser":
+                success_message = (
+                    f"Stored {chunk_count} retrievable chunks using browser-rendered extraction."
+                )
+
             active_urls.append(url)
             report.append(
                 {
                     "state": "success",
                     "url": url,
-                    "message": f"Stored {chunk_count} retrievable chunks.",
+                    "message": success_message,
                 }
             )
     finally:
