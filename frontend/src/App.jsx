@@ -129,6 +129,10 @@ function IndexStatus({ report, error }) {
   );
 }
 
+function reportHasIssues(report) {
+  return report.some((item) => item.state === "error" || item.state === "warning");
+}
+
 export default function App() {
   const [activeSources, setActiveSources] = useState([]);
   const [messages, setMessages] = useState([buildWelcomeMessage([])]);
@@ -195,10 +199,16 @@ export default function App() {
       const data = await indexSources(urls);
       const nextActive = data.activeUrls || [];
       const nextReport = data.report || [];
+      const hasIssues = reportHasIssues(nextReport);
 
       setActiveSources(nextActive);
-      setSourceInputs(nextActive.length ? nextActive : []);
       setIndexReport(nextReport);
+
+      if (hasIssues) {
+        return;
+      }
+
+      setSourceInputs(nextActive.length ? nextActive : []);
       setMessages([buildWelcomeMessage(nextActive)]);
       setTimeout(() => {
         setIsSourcesOpen(false);
