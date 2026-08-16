@@ -65,7 +65,11 @@ export default {
         return new Response("Missing 'prompt' in request body", { status: 400 });
       }
 
-      const aiInput = { prompt };
+      const aiInput = {
+        prompt,
+        max_tokens: 768,
+        temperature: 0.2,
+      };
       const response = await env.AI.run(llmModel, aiInput);
 
       return new Response(JSON.stringify([{ inputs: aiInput, response }]), {
