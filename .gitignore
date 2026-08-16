@@ -5,6 +5,10 @@ __pycache__/
 # Ignore virtual environment
 venv/
 
+# Ignore frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
 # Ignore environment variables file
 .env
 

@@ -1,8 +1,16 @@
 # Universal URL Research Tool
 
-Live demo: https://universal-url-researc-7jj88zvtofjkvegmykp447.streamlit.app/
+Current app architecture:
 
-Deployed as a live app on **Streamlit Cloud**, backed by **Supabase PostgreSQL + pgvector** and a **Cloudflare Worker AI** LLM endpoint.
+- **Frontend**: React + Vite in [`frontend/`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/frontend)
+- **Backend**: FastAPI in [`backend/main.py`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/backend/main.py)
+- **Database**: Supabase PostgreSQL + pgvector
+- **LLM endpoint**: Cloudflare Worker AI via [`worker.js`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/worker.js)
+- **Deployment target**: Render via [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile) and [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml)
+
+Legacy note:
+
+- The old Streamlit prototype still exists in [`app.py`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/app.py) for reference, but the current UI direction is the React chat interface.
 
 ## What This Project Is For
 
@@ -29,27 +37,48 @@ You bring the URLs; the tool does the crawling, chunking, embedding, and retriev
 
 | Layer        | Tools & Libraries |
 |--------------|-------------------|
-| Frontend     | Streamlit |
+| Frontend     | React, Vite |
+| Backend      | FastAPI |
 | Orchestration | LangChain |
-| Backend      | Python (Streamlit app on Streamlit Cloud) |
 | Database     | PostgreSQL + pgvector (Supabase Session Pooler) |
 | Embeddings   | sentence-transformers |
 | LLM          | Cloudflare Workers AI (LLaMA 3) |
 | Data Fetch   | Requests, BeautifulSoup |
 | Chunking     | LangChain Text Splitters |
+| Hosting      | Render |
 
-This project is a small MVP-style Retrieval-Augmented Generation (RAG) app that lets you:
+This project is a small Retrieval-Augmented Generation (RAG) app that lets you:
 
 - Paste one or more URLs.
 - Fetch and chunk the page content into semantically meaningful segments.
 - Store those segments as embeddings in PostgreSQL with PGVector.
 - Ask questions and get grounded answers plus source links, powered by a Cloudflare Worker LLM.
 
-The stack is designed around a simple **Model–View–Presenter (MVP)** separation:
+The current stack is split cleanly into:
 
-- **View**: Streamlit UI (`app.py`).
-- **Presenter / Orchestration**: The high-level flows inside `app.py` that call ingestion, vector store, and RAG chain.
-- **Model**: Ingestion, embeddings, vector store, database and LLM/RAG chain (`ingestion.py`, `vector_store.py`, `rag_chain.py`, PostgreSQL + PGVector, Cloudflare Worker).
+- **Frontend**: React chat UI in `frontend/`
+- **API**: FastAPI endpoints in `backend/main.py`
+- **Core research logic**: ingestion, vector store, and RAG modules in the repo root
+
+## Render Deployment
+
+This repo is prepared for a Render web service using Docker.
+
+Important files:
+
+- [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile): builds the React frontend and runs the FastAPI backend
+- [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml): declares the Render service and required environment variable names
+
+Required environment variables on Render:
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `WORKER_ENDPOINT`
+
+The backend serves the built React app and the `/api/*` endpoints from the same Render service.
 
 ---
 

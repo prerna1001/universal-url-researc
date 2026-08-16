@@ -1,0 +1,391 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+  background: #f3f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 28%),
+    #f3f6fb;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 32px;
+}
+
+.app-header {
+  margin-bottom: 18px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.app-header p {
+  margin: 10px 0 0;
+  color: #5b6474;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.source-strip,
+.chat-panel,
+.composer,
+.modal-card {
+  background: #ffffff;
+  border: 1px solid #dde5f0;
+  border-radius: 22px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.source-strip {
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.source-strip h2,
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.source-strip p,
+.modal-header p {
+  margin: 6px 0 0;
+  color: #5b6474;
+  font-size: 0.94rem;
+}
+
+.source-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.source-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #d6e0ee;
+  font-size: 0.88rem;
+  color: #0f172a;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.empty-copy {
+  color: #6b7280;
+  font-size: 0.92rem;
+}
+
+.chat-panel {
+  min-height: 520px;
+  padding: 18px;
+}
+
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.message-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.message-row-user {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: min(690px, 88%);
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.message-bubble-user {
+  background: #eef5ff;
+  border-color: #c9dcff;
+}
+
+.message-content p {
+  margin: 0 0 10px;
+  line-height: 1.65;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-sources {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #d9e2ef;
+}
+
+.message-sources-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.message-sources ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.message-sources a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.message-sources a:hover {
+  text-decoration: underline;
+}
+
+.composer {
+  position: sticky;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.composer input {
+  width: 100%;
+  border: 1px solid #d2dbe8;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 0.98rem;
+  outline: none;
+}
+
+.composer input:focus,
+.source-form textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.primary-button,
+.secondary-button,
+.icon-button {
+  border: 1px solid #d2dbe8;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.primary-button {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.page-error {
+  margin-top: 12px;
+  color: #b42318;
+  font-size: 0.92rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modal-card {
+  width: min(680px, 100%);
+  padding: 18px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.source-form textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #d2dbe8;
+  border-radius: 18px;
+  padding: 14px 16px;
+  outline: none;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  min-height: 180px;
+}
+
+.source-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.index-status {
+  margin-top: 16px;
+}
+
+.status-banner {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  margin-bottom: 10px;
+}
+
+.status-banner-success {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #abefc6;
+}
+
+.status-banner-warning {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+.status-banner-error {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.status-details {
+  margin-top: 8px;
+}
+
+.status-details summary {
+  cursor: pointer;
+  color: #475467;
+  font-weight: 600;
+}
+
+.status-detail-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.status-detail-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.status-detail-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.status-detail-label-success {
+  color: #027a48;
+}
+
+.status-detail-label-warning {
+  color: #b54708;
+}
+
+.status-detail-label-error {
+  color: #b42318;
+}
+
+.status-detail-label-note {
+  color: #175cd3;
+}
+
+.status-detail-url {
+  font-size: 0.9rem;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+  margin-bottom: 4px;
+}
+
+.status-detail-message {
+  font-size: 0.9rem;
+  color: #5b6474;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 20px 14px 24px;
+  }
+
+  .composer {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+
+  .message-bubble {
+    max-width: 100%;
+  }
+}
