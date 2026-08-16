@@ -1,4 +1,4 @@
-name = "worker-name"
+name = "universal-url-researc"
 compatibility_date = "2026-01-11"
 main = "worker.js"
 
