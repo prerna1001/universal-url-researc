@@ -20,133 +20,176 @@ st.set_page_config(
 
 
 def inject_styles():
-    """Apply a more intentional, chat-first visual design."""
+    """Apply a simple, chat-first visual design."""
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-          --bg: #07111f;
-          --panel: rgba(11, 22, 38, 0.78);
-          --panel-strong: rgba(12, 25, 43, 0.94);
-          --line: rgba(157, 188, 255, 0.18);
-          --accent: #4ecdc4;
-          --accent-2: #ffd166;
-          --text: #f5f7fb;
-          --muted: #a8b5cc;
-          --danger: #ff7b7b;
-          --success: #52d273;
+          --bg: #f5f7fb;
+          --panel: #ffffff;
+          --line: #dfe5ef;
+          --line-strong: #cbd5e1;
+          --text: #0f172a;
+          --muted: #5b6474;
+          --accent: #2563eb;
+          --accent-soft: #eff6ff;
+          --success: #0f9f6e;
+          --warning: #b7791f;
+          --danger: #c24141;
         }
 
         .stApp {
-          background:
-            radial-gradient(circle at top left, rgba(78, 205, 196, 0.16), transparent 30%),
-            radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 26%),
-            linear-gradient(160deg, #07111f 0%, #0b1730 52%, #09101a 100%);
+          background: var(--bg);
           color: var(--text);
         }
 
         html, body, [class*="css"]  {
-          font-family: "Space Grotesk", sans-serif;
+          font-family: "Inter", sans-serif;
         }
 
         .block-container {
-          padding-top: 2.2rem;
-          padding-bottom: 2rem;
-          max-width: 1280px;
+          padding-top: 1.4rem;
+          padding-bottom: 1.6rem;
+          max-width: 980px;
         }
 
-        h1, h2, h3 {
-          color: var(--text);
-          letter-spacing: -0.02em;
+        .app-frame {
+          max-width: 860px;
+          margin: 0 auto;
         }
 
-        .hero-card, .control-card, .chat-shell, .status-card {
-          background: var(--panel);
-          backdrop-filter: blur(18px);
-          border: 1px solid var(--line);
-          border-radius: 26px;
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
-        }
-
-        .hero-card {
-          padding: 1.5rem 1.6rem;
+        .app-header {
           margin-bottom: 1rem;
         }
 
-        .hero-kicker {
-          color: var(--accent);
-          text-transform: uppercase;
-          letter-spacing: 0.16em;
-          font-size: 0.78rem;
+        .app-title {
+          font-size: 1.85rem;
           font-weight: 700;
+          letter-spacing: -0.03em;
+          color: var(--text);
+          margin-bottom: 0.25rem;
         }
 
-        .hero-title {
-          font-size: 3.35rem;
-          line-height: 1;
-          margin: 0.35rem 0 0.75rem 0;
-          font-weight: 700;
-        }
-
-        .hero-copy {
+        .app-subtitle {
           color: var(--muted);
-          font-size: 1.03rem;
-          line-height: 1.65;
-          max-width: 58rem;
+          font-size: 0.98rem;
+          line-height: 1.5;
         }
 
-        .control-card, .chat-shell, .status-card {
-          padding: 1.2rem 1.2rem 1.1rem 1.2rem;
+        .source-strip, .source-panel, .chat-card, .composer-card {
+          background: var(--panel);
+          border: 1px solid var(--line);
+          border-radius: 20px;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .source-strip {
+          padding: 0.9rem 1rem;
+          margin-bottom: 0.9rem;
+        }
+
+        .source-strip-title {
+          font-size: 0.92rem;
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+          color: var(--text);
+        }
+
+        .source-strip-copy {
+          color: var(--muted);
+          font-size: 0.9rem;
+        }
+
+        .source-panel {
+          padding: 1rem;
+          margin-bottom: 0.9rem;
         }
 
         .panel-title {
-          font-size: 1.15rem;
-          font-weight: 700;
-          margin-bottom: 0.15rem;
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.2rem;
+          color: var(--text);
         }
 
         .panel-copy {
           color: var(--muted);
-          font-size: 0.95rem;
+          font-size: 0.92rem;
           line-height: 1.5;
-          margin-bottom: 1rem;
+          margin-bottom: 0.8rem;
         }
 
         .source-chip {
           display: inline-block;
-          padding: 0.38rem 0.72rem;
-          margin: 0 0.45rem 0.45rem 0;
+          padding: 0.35rem 0.7rem;
+          margin: 0 0.42rem 0.42rem 0;
           border-radius: 999px;
-          border: 1px solid rgba(78, 205, 196, 0.25);
-          background: rgba(78, 205, 196, 0.08);
-          color: #d5fff8;
+          border: 1px solid var(--line-strong);
+          background: #f8fafc;
+          color: var(--text);
           font-size: 0.88rem;
-          line-height: 1.2;
           word-break: break-all;
         }
 
+        .chat-card {
+          min-height: 520px;
+          padding: 1rem;
+          margin-bottom: 0.85rem;
+        }
+
+        .chat-title {
+          font-size: 0.96rem;
+          font-weight: 600;
+          margin-bottom: 0.2rem;
+          color: var(--text);
+        }
+
+        .chat-copy {
+          color: var(--muted);
+          font-size: 0.9rem;
+          margin-bottom: 0.85rem;
+        }
+
+        .composer-card {
+          padding: 0.85rem;
+          position: sticky;
+          bottom: 0.75rem;
+        }
+
+        .stChatMessage {
+          background: transparent !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        .stChatMessage [data-testid="stMarkdownContainer"] p,
+        .stChatMessage [data-testid="stMarkdownContainer"] li {
+          font-size: 0.98rem;
+          line-height: 1.68;
+          color: var(--text);
+        }
+
         .report-item {
-          padding: 0.82rem 0.9rem;
+          padding: 0.8rem 0.85rem;
           border-radius: 16px;
-          margin-bottom: 0.7rem;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          margin-bottom: 0.65rem;
+          background: #f8fafc;
+          border: 1px solid var(--line);
         }
 
         .report-label {
-          font-family: "IBM Plex Mono", monospace;
           text-transform: uppercase;
           letter-spacing: 0.08em;
           font-size: 0.76rem;
           margin-bottom: 0.28rem;
         }
 
-        .report-success .report-label { color: var(--success); }
-        .report-warning .report-label { color: var(--accent-2); }
-        .report-error .report-label { color: var(--danger); }
         .report-note .report-label { color: var(--accent); }
+        .report-success .report-label { color: var(--success); }
+        .report-warning .report-label { color: var(--warning); }
+        .report-error .report-label { color: var(--danger); }
 
         .report-url {
           color: var(--text);
@@ -161,49 +204,16 @@ def inject_styles():
           line-height: 1.45;
         }
 
-        .chat-shell {
-          min-height: 650px;
-        }
-
-        .chat-heading {
-          display: flex;
-          justify-content: space-between;
-          align-items: baseline;
-          gap: 0.8rem;
-          margin-bottom: 0.35rem;
-        }
-
-        .chat-subcopy {
-          color: var(--muted);
-          font-size: 0.93rem;
-          margin-bottom: 0.8rem;
-        }
-
-        .stChatMessage {
-          background: transparent !important;
-        }
-
-        .stChatMessage [data-testid="stMarkdownContainer"] p,
-        .stChatMessage [data-testid="stMarkdownContainer"] li {
-          font-size: 1rem;
-          line-height: 1.72;
-        }
-
-        .stChatMessage [data-testid="stMarkdownContainer"] ul {
-          padding-left: 1.3rem;
-        }
-
         .source-block {
           margin-top: 0.7rem;
           padding: 0.8rem 0.95rem;
           border-radius: 16px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: #f8fafc;
+          border: 1px solid var(--line);
         }
 
         .source-block-title {
-          color: var(--accent);
-          font-family: "IBM Plex Mono", monospace;
+          color: var(--muted);
           text-transform: uppercase;
           letter-spacing: 0.08em;
           font-size: 0.78rem;
@@ -211,7 +221,7 @@ def inject_styles():
         }
 
         .source-link {
-          color: #b9d7ff;
+          color: var(--accent);
           text-decoration: none;
         }
 
@@ -219,37 +229,41 @@ def inject_styles():
           text-decoration: underline;
         }
 
-        div[data-testid="stNumberInput"] input,
-        div[data-testid="stTextInput"] input,
-        div[data-testid="stChatInput"] textarea {
-          background: rgba(255, 255, 255, 0.04) !important;
-          border-radius: 18px !important;
-          border: 1px solid rgba(157, 188, 255, 0.14) !important;
+        div[data-testid="stTextArea"] textarea,
+        div[data-testid="stTextInput"] input {
+          background: #ffffff !important;
+          border-radius: 16px !important;
+          border: 1px solid var(--line-strong) !important;
           color: var(--text) !important;
         }
 
-        div[data-testid="stNumberInput"] label,
+        div[data-testid="stTextArea"] label,
         div[data-testid="stTextInput"] label {
           color: var(--muted) !important;
           font-weight: 500;
         }
 
         .stButton > button {
-          border-radius: 16px;
-          border: 1px solid rgba(78, 205, 196, 0.28);
-          background: linear-gradient(135deg, rgba(78, 205, 196, 0.22), rgba(255, 209, 102, 0.18));
+          border-radius: 14px;
+          border: 1px solid var(--line-strong);
+          background: #ffffff;
           color: var(--text);
-          font-weight: 700;
-          min-height: 3rem;
+          font-weight: 600;
+          min-height: 2.8rem;
         }
 
         .stButton > button:hover {
-          border-color: rgba(78, 205, 196, 0.5);
-          color: white;
+          border-color: var(--accent);
+          color: var(--accent);
         }
 
         div[data-testid="stAlert"] {
           border-radius: 18px;
+        }
+
+        div[data-testid="stForm"] {
+          border: 0 !important;
+          padding: 0 !important;
         }
         </style>
         """,
@@ -726,132 +740,26 @@ init_session_state()
 
 st.markdown(
     """
-    <style>
-    .block-container {
-      max-width: 980px;
-    }
-    .app-shell {
-      margin: 0 auto 1rem auto;
-      max-width: 920px;
-    }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .app-mark {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .app-kicker {
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 0.72rem;
-      font-weight: 700;
-    }
-    .app-title {
-      font-size: 1.55rem;
-      line-height: 1.1;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .app-copy {
-      color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.5;
-      margin-bottom: 0.9rem;
-    }
-    .source-bar, .source-drawer, .transcript-shell {
-      background: var(--panel);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-    }
-    .source-bar {
-      padding: 0.95rem 1rem;
-      margin-bottom: 0.85rem;
-    }
-    .source-bar-title {
-      font-size: 0.96rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 0.25rem;
-    }
-    .source-bar-copy {
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.45;
-    }
-    .source-drawer {
-      padding: 1rem;
-      margin-bottom: 0.95rem;
-    }
-    .transcript-shell {
-      padding: 1rem 1rem 1.4rem 1rem;
-      min-height: 520px;
-    }
-    .transcript-title {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 0.2rem;
-    }
-    .transcript-copy {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 0.9rem;
-    }
-    .toolbar-row {
-      display: flex;
-      gap: 0.65rem;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 0.85rem;
-    }
-    .toolbar-spacer {
-      flex: 1 1 auto;
-    }
-    @media (max-width: 900px) {
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-    </style>
-    <div class='app-shell'>
-      <div class='topbar'>
-        <div class='app-mark'>
-          <div class='app-kicker'>Grounded Research</div>
-          <div class='app-title'>Universal URL Research Tool</div>
+    <div class='app-frame'>
+      <div class='app-header'>
+        <div class='app-title'>Universal URL Research Tool</div>
+        <div class='app-subtitle'>
+          Add sources only when you need them, then ask questions in one simple chat.
         </div>
-      </div>
-      <div class='app-copy'>
-        Add a source set when you need it, then stay in one clean chat interface.
       </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-toolbar_left, toolbar_right = st.columns([1, 1])
-with toolbar_left:
-    if st.button("Sources", use_container_width=True):
-        st.session_state["sources_panel_open"] = not st.session_state["sources_panel_open"]
-with toolbar_right:
-    if st.button("New Chat", use_container_width=True):
-        reset_chat_history(st.session_state.get("active_urls", []))
-        st.rerun()
-
 st.markdown(
     """
-    <div class='source-bar'>
-      <div class='source-bar-title'>Active source set</div>
-      <div class='source-bar-copy'>
-        Your answers should stay grounded only in the URLs currently indexed here.
+    <div class='app-frame'>
+      <div class='source-strip'>
+        <div class='source-strip-title'>Active Sources</div>
+        <div class='source-strip-copy'>
+          Answers should stay grounded only in these indexed URLs.
+        </div>
       </div>
     </div>
     """,
@@ -862,11 +770,13 @@ render_source_chips(st.session_state.get("active_urls", []))
 if st.session_state.get("sources_panel_open"):
     st.markdown(
         """
-        <div class='source-drawer'>
+        <div class='app-frame'>
+        <div class='source-panel'>
           <div class='panel-title'>Manage Sources</div>
           <div class='panel-copy'>
-            Paste one URL per line. Re-indexing replaces the active set, but keeps vectors for URLs that are unchanged.
+            Paste one URL per line, then refresh the source set.
           </div>
+        </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -906,10 +816,12 @@ if st.session_state.get("sources_panel_open"):
 
 st.markdown(
     """
-    <div class='transcript-shell'>
-      <div class='transcript-title'>Chat</div>
-      <div class='transcript-copy'>
-        Ask questions naturally. If the answer is grounded, sources will appear right under the reply.
+    <div class='app-frame'>
+      <div class='chat-card'>
+        <div class='chat-title'>Chat</div>
+        <div class='chat-copy'>
+          Ask naturally. Grounded replies will show their sources right underneath.
+        </div>
       </div>
     </div>
     """,
@@ -917,14 +829,34 @@ st.markdown(
 )
 render_chat_history()
 
-question = st.chat_input("Ask a question about the active source set")
+st.markdown("<div class='app-frame'><div class='composer-card'>", unsafe_allow_html=True)
+composer_col, sources_col, send_col = st.columns([6.5, 1.8, 1.2], gap="small")
 
-if question:
+with composer_col:
+    question = st.text_input(
+        "Question",
+        key="composer_input",
+        placeholder="Ask anything about your sources...",
+        label_visibility="collapsed",
+    )
+
+with sources_col:
+    if st.button("Add Sources", use_container_width=True):
+        st.session_state["sources_panel_open"] = not st.session_state["sources_panel_open"]
+        st.rerun()
+
+with send_col:
+    send_clicked = st.button("Send", use_container_width=True)
+
+st.markdown("</div></div>", unsafe_allow_html=True)
+
+if send_clicked and question.strip():
     current_urls = normalize_urls(
         st.session_state.get("source_urls_text", "").splitlines()
     )
     try:
-        answer_question(question, current_urls)
+        answer_question(question.strip(), current_urls)
+        st.session_state["composer_input"] = ""
         st.rerun()
     except Exception as err:
         st.error(f"An error occurred while answering your question: {err}")
