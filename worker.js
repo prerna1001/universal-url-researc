@@ -67,7 +67,7 @@ export default {
 
       const aiInput = {
         prompt,
-        max_tokens: 768,
+        max_tokens: 2100,
         temperature: 0.2,
       };
       const response = await env.AI.run(llmModel, aiInput);

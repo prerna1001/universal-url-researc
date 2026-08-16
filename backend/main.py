@@ -282,6 +282,8 @@ PROMPT_ECHO_PATTERNS = [
     "Answer:",
 ]
 
+MAX_ANSWER_CHARACTERS = 2000
+
 
 def dedupe_repeated_paragraphs(text: str) -> str:
     """Drop repeated paragraphs while preserving the original order."""
@@ -312,6 +314,26 @@ def trim_meta_tail(text: str) -> str:
         trimmed = re.sub(pattern, "", trimmed, flags=re.IGNORECASE | re.DOTALL).strip()
 
     return trimmed
+
+
+def trim_answer_length(text: str, max_characters: int = MAX_ANSWER_CHARACTERS) -> str:
+    """Keep the visible answer within the target UI-friendly character budget."""
+    trimmed = (text or "").strip()
+    if len(trimmed) <= max_characters:
+        return trimmed
+
+    cutoff = trimmed[: max_characters + 1]
+    sentence_breaks = [cutoff.rfind(mark) for mark in [". ", "! ", "? ", "\n\n"]]
+    best_break = max(sentence_breaks)
+
+    if best_break >= max_characters * 0.55:
+        return cutoff[: best_break + 1].strip()
+
+    space_break = cutoff.rfind(" ")
+    if space_break >= max_characters * 0.7:
+        return cutoff[:space_break].strip() + "..."
+
+    return cutoff[:max_characters].strip() + "..."
 
 
 def sanitize_model_answer(answer: str) -> str:
@@ -376,6 +398,7 @@ def sanitize_model_answer(answer: str) -> str:
     # Remove trailing note fragments that often appear after an echoed instruction block.
     cleaned = re.sub(r"\(\s*Note:.*$", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
     cleaned = re.sub(r"\s+", " ", cleaned).strip() if "\n" not in cleaned else cleaned.strip()
+    cleaned = trim_answer_length(cleaned)
 
     return cleaned or fallback
 

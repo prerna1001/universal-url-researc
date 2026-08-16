@@ -81,6 +81,7 @@ def get_rag_prompt_template():
             "\"I couldn't find that in the indexed sources.\"\n"
             "- If you use that fallback sentence, return exactly that sentence and nothing else.\n"
             "- Keep answers concise unless the user asks for depth.\n"
+            "- Keep the final answer under 2000 characters.\n"
             "- Use short paragraphs with breathing room.\n"
             "- If you have 3 or more distinct points, use a compact bullet list.\n"
             "- Never return one long unbroken wall of text.\n"
