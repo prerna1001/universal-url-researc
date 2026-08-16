@@ -19,8 +19,6 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      - key: HF_TOKEN
-        sync: false
       - key: WORKER_ENDPOINT
         sync: false
 

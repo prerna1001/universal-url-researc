@@ -41,7 +41,7 @@ You bring the URLs; the tool does the crawling, chunking, embedding, and retriev
 | Backend      | FastAPI |
 | Orchestration | LangChain |
 | Database     | PostgreSQL + pgvector (Supabase Session Pooler) |
-| Embeddings   | sentence-transformers |
+| Embeddings   | Cloudflare Workers AI embeddings |
 | LLM          | Cloudflare Workers AI (LLaMA 3) |
 | Data Fetch   | Requests, BeautifulSoup |
 | Chunking     | LangChain Text Splitters |
@@ -88,7 +88,6 @@ Required backend environment variables on Render:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-- `HF_TOKEN`
 - `WORKER_ENDPOINT`
 
 Cross-service wiring:
@@ -114,8 +113,8 @@ Why this split helps:
 - **PostgreSQL + PGVector**:
   - Stores raw cleaned page text (`indexed_urls` table).
   - Stores embeddings and metadata for semantic search (`url_embeddings` via `PGVector`).
-- **HuggingFace / sentence-transformers**:
-  - `sentence-transformers/all-MiniLM-L6-v2` for turning text chunks into embedding vectors.
+- **Cloudflare Workers AI embeddings**:
+  - `@cf/baai/bge-small-en-v1.5` for turning text chunks into 384-dimensional embedding vectors.
 - **Cloudflare Worker AI**:
   - Hosts the LLM (`@cf/meta/llama-3-8b-instruct`) behind a simple HTTP endpoint used by the custom LangChain LLM wrapper.
 - **Requests + BeautifulSoup**:
@@ -189,12 +188,12 @@ Why this split helps:
 **What it uses**
 
 - LangChain’s `PGVector` integration from `langchain_community`.
-- `HuggingFaceEmbeddings` wrapping `sentence-transformers/all-MiniLM-L6-v2`.
+- A custom `WorkerEmbeddings` adapter that requests embeddings from the existing Cloudflare Worker endpoint.
 
 **What it does**
 
 - `get_vector_store(connection_string, table_name="url_embeddings")`:
-  - Instantiates `HuggingFaceEmbeddings` once.
+  - Instantiates a remote embedding client backed by the Cloudflare Worker.
   - Calls `PGVector.from_texts(texts=[], embedding=embeddings, collection_name=table_name, connection_string=connection_string)` to configure the collection.
   - Returns a vector store object that:
     - Accepts `add_texts` during ingestion.
