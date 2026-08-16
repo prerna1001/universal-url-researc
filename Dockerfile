@@ -12,7 +12,6 @@ RUN python -m pip install --no-cache-dir -r requirements.txt \
 
 COPY backend ./backend
 COPY db ./db
-COPY *.py ./
 COPY worker.js wrangler.toml README.md ./
 
 CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -12,9 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from ingestion import index_url_into_vector_store
-from rag_chain import generate_grounded_answer, get_rag_prompt_template, get_worker_llm
-from vector_store import get_vector_store
+from backend.ingestion import index_url_into_vector_store
+from backend.rag_chain import (
+    generate_grounded_answer,
+    get_rag_prompt_template,
+    get_worker_llm,
+)
+from backend.vector_store import get_vector_store
 
 
 load_dotenv()

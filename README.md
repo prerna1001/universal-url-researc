@@ -1,16 +1,19 @@
 # Universal URL Research Tool
 
-Current app architecture:
+Universal URL Research Tool is a chat-style research workspace where you add URLs, index them, and ask grounded questions against only those sources.
+
+## Live App
+
+- **Frontend (live UI)**: [https://universal-url-researc-ui.onrender.com](https://universal-url-researc-ui.onrender.com)
+- **Backend API**: [https://universal-url-researc-api.onrender.com](https://universal-url-researc-api.onrender.com)
+
+## Current Architecture
 
 - **Frontend**: React + Vite in [`frontend/`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/frontend)
 - **Backend**: FastAPI in [`backend/main.py`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/backend/main.py)
 - **Database**: Supabase PostgreSQL + pgvector
-- **LLM endpoint**: Cloudflare Worker AI via [`worker.js`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/worker.js)
-- **Deployment target**: Render via [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile) and [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml)
-
-Legacy note:
-
-- The old Streamlit prototype still exists in [`app.py`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/app.py) for reference, but the current UI direction is the React chat interface.
+- **Embeddings + answers**: Cloudflare Workers AI via [`worker.js`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/worker.js)
+- **Deployment**: Render via [`Dockerfile`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/Dockerfile) and [`render.yaml`](/Users/prerna/Downloads/universal-url-researc-main/repo_git/render.yaml)
 
 ## What This Project Is For
 
@@ -23,8 +26,7 @@ At a high level, it lets you:
 - Ask natural‑language questions based **only** on the indexed pages.
 - Get concise, grounded answers with links back to the original sources.
 
-
--Typical use cases include:
+Typical use cases include:
 
 - Literature and background research across many web articles.
 - Competitive/market research over product pages and blogs.
@@ -32,6 +34,40 @@ At a high level, it lets you:
 - Policy, legal, or technical deep‑dives using documentation URLs.
 
 You bring the URLs; the tool does the crawling, chunking, embedding, and retrieval so you can focus on asking questions and interpreting results.
+
+## Updated Features
+
+The current version already supports:
+
+- **Chat-style research flow** with a polished React interface.
+- **Add, remove, and re-save sources** from a dedicated source manager modal.
+- **Session-scoped active sources** so each browser session can work on its own URL set.
+- **Grounded answers only from indexed sources** rather than broad open-ended model replies.
+- **Visible source attribution** under answers so you can see where an answer came from.
+- **Shared research log in the database** for questions, answers, active URLs, and source URLs.
+- **Automatic answer cleanup** to reduce leaked prompt text, repeated fragments, and overly long raw output.
+- **Shorter UI-friendly answer shaping** so replies stay readable in the chat interface.
+- **Vector reuse for already indexed URLs** so the app can avoid unnecessary re-embedding when possible.
+- **Playwright-assisted page extraction fallback** for modern pages that rely on JavaScript rendering.
+- **Indexing notes per URL** so you can see success, warning, and failure states after saving sources.
+- **Split deployment on Render** with separate frontend and backend services.
+
+## Upcoming Features
+
+Planned and high-value next steps include:
+
+- **Role-based access control** for personal, admin, and team-level permissions.
+- **Downloadable chat transcripts** so research trails can be saved, shared, or archived.
+- **Research history dashboard** to revisit earlier questions and answers in a cleaner timeline.
+- **Named research workspaces** so users can maintain multiple source collections instead of one temporary session.
+- **User authentication** so each person gets their own saved source sets and chat history.
+- **Shared team research rooms** for collaborative analysis across the same source base.
+- **Pinned findings and notes** to turn chat outputs into a reusable research brief.
+- **Source snapshots / version tracking** so answers can be tied to the exact content seen at indexing time.
+- **Scheduled re-indexing** for sources that change often.
+- **Stronger source-quality controls** such as duplicate detection, crawl diagnostics, and content completeness warnings.
+- **Answer export options** such as PDF, Markdown, or structured research notes.
+- **Follow-up aware citations** that show exactly which source supported each major claim.
 
 ## Technology Stack
 
@@ -45,9 +81,10 @@ You bring the URLs; the tool does the crawling, chunking, embedding, and retriev
 | LLM          | Cloudflare Workers AI (LLaMA 3) |
 | Data Fetch   | Requests, BeautifulSoup |
 | Chunking     | LangChain Text Splitters |
+| JS Rendering | Playwright |
 | Hosting      | Render |
 
-This project is a small Retrieval-Augmented Generation (RAG) app that lets you:
+This project is a Retrieval-Augmented Generation (RAG) app that lets you:
 
 - Paste one or more URLs.
 - Fetch and chunk the page content into semantically meaningful segments.
@@ -58,7 +95,7 @@ The current stack is split cleanly into:
 
 - **Frontend**: React chat UI in `frontend/`
 - **API**: FastAPI endpoints in `backend/main.py`
-- **Core research logic**: ingestion, vector store, and RAG modules in the repo root
+- **Core research logic**: ingestion, vector store, prompting, and RAG modules in `backend/`
 
 ## Render Deployment
 
@@ -77,9 +114,11 @@ Render services in the blueprint:
 - `universal-url-researc-ui`
   - React static site
   - Build command: `cd frontend && npm install && npm run build`
+  - Live URL: `https://universal-url-researc-ui.onrender.com`
 - `universal-url-researc-api`
   - FastAPI backend
   - Connects to Supabase and the Cloudflare Worker endpoint
+  - Live URL: `https://universal-url-researc-api.onrender.com`
 
 Required backend environment variables on Render:
 
@@ -105,213 +144,153 @@ Why this split helps:
 
 ## Technologies and What They Are Used For
 
-- **Python + Streamlit**: Front-end UI and orchestration logic (`app.py`).
+- **React + Vite**: the live chat-style frontend.
+- **FastAPI**: the backend API for source indexing, question answering, and persistence.
 - **LangChain**:
-  - `RetrievalQA` for the RAG pipeline.
-  - Text splitters (`RecursiveCharacterTextSplitter`) for chunking.
-  - LLM abstractions (`BaseLLM`, `LLMResult`, `Generation`) for the custom Worker-backed LLM.
-- **PostgreSQL + PGVector**:
-  - Stores raw cleaned page text (`indexed_urls` table).
-  - Stores embeddings and metadata for semantic search (`url_embeddings` via `PGVector`).
+  - Retrieval flow for question answering.
+  - Text splitting for chunking long source pages.
+  - LLM wrappers for the Worker-backed model.
+- **PostgreSQL + pgvector**:
+  - Stores cleaned indexed URL content.
+  - Stores vector embeddings and retrieval metadata.
+  - Stores the shared chat log table for research history.
 - **Cloudflare Workers AI embeddings**:
-  - `@cf/baai/bge-small-en-v1.5` for turning text chunks into 384-dimensional embedding vectors.
+  - Converts source chunks into vectors for semantic retrieval.
 - **Cloudflare Worker AI**:
-  - Hosts the LLM (`@cf/meta/llama-3-8b-instruct`) behind a simple HTTP endpoint used by the custom LangChain LLM wrapper.
-- **Requests + BeautifulSoup**:
-  - Fetch page HTML and clean it into plain text suitable for embeddings.
+  - Generates grounded answers from retrieved source context.
+- **Requests + BeautifulSoup + Playwright**:
+  - Fetch, clean, and extract content from both simple pages and modern JS-rendered pages.
 
 ---
 
 ## Components and Their Roles
 
-### 1. `app.py` – Streamlit View + Presenter
+### 1. `frontend/` – React Chat Interface
 
 **What it uses**
 
-- **Streamlit**: to build the UI.
-- **psycopg2 / Postgres**: to store full page text in `indexed_urls`.
-- **`vector_store.get_vector_store`**: to get a PGVector-backed vector store.
-- **`ingestion.index_url_into_vector_store`**: to fetch, clean, chunk, and embed URLs.
-- **`rag_chain.create_rag_chain`**: to build the RetrievalQA chain on top of the retriever.
-- **Session state (`st.session_state`)**: to cache the RAG chain between interactions.
+- React state for the chat, source modal, and session-level source list.
+- `frontend/src/api.*` helpers to talk to the FastAPI backend.
+- Session storage so a browser tab can preserve its current active chat state.
 
 **What it does**
 
-- Reads DB config from environment (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`) and builds:
-  - A psycopg2 connection for relational data.
-  - A PG connection string for the vector store.
-- On **“Index Sources”**:
-  1. Creates a `PGVector` store: `get_vector_store(connection_string, table_name="url_embeddings")`.
-  2. Wraps it in a retriever: `vector_store.as_retriever()`.
-  3. Builds a RAG chain: `create_rag_chain(retriever)`.
-  4. Stores the chain in `st.session_state["rag_chain"]`.
-  5. Ensures the `indexed_urls` table exists.
-  6. For each URL:
-     - Calls `index_url_into_vector_store(url, vector_store)` to fetch + embed all segments.
-     - Inserts `(url, full_cleaned_text)` into `indexed_urls`.
-- On **question submit**:
-  - Retrieves `rag_chain` from session.
-  - Calls `rag_chain({"query": question})`.
-  - Displays the formatted answer.
-  - Extracts `doc.metadata["url"]` from `source_documents`, deduplicates, and shows each unique source URL once.
+- Shows the current active sources as chips.
+- Opens the **Add Sources** modal to add, remove, and save URLs.
+- Sends questions to the backend with recent chat history.
+- Renders replies in a cleaner research-chat format.
+- Shows source chips under grounded answers.
 
 ---
 
-### 2. `ingestion.py` – Fetching, Cleaning, and Chunking
+### 2. `backend/main.py` – FastAPI API and Research Orchestration
 
 **What it uses**
 
-- `requests` with custom headers (polite `User-Agent`, `Accept`).
-- `BeautifulSoup` from `beautifulsoup4` for HTML parsing and cleaning.
-- `RecursiveCharacterTextSplitter` from `langchain-text-splitters` for segmenting text.
+- FastAPI for HTTP routes.
+- psycopg2 for PostgreSQL access.
+- Ingestion, vector store, and RAG helpers from the repo.
 
 **What it does**
 
-- `fetch_url_text(url)`:
-  - Downloads the web page HTML.
-  - Handles HTTP errors cleanly (e.g., clear message for 403/blocked URLs).
-  - Strips scripts/styles and normalizes whitespace.
-  - Returns plain cleaned text.
-- `split_into_chunks(text, chunk_size=1000, chunk_overlap=200)`:
-  - Breaks long text into overlapping segments suitable for retrieval.
-- `index_url_into_vector_store(url, vector_store)`:
-  - Fetches and chunks text.
-  - Calls `vector_store.add_texts` with:
-    - `texts = [chunk1, chunk2, …]`
-    - `metadatas = [{"url": url, "chunk_index": i}, …]`
-  - Returns the full cleaned text so `app.py` can also store it in `indexed_urls`.
+- Exposes `/api/sources`, `/api/sources/index`, `/api/chat`, and `/api/health`.
+- Saves indexed page text into `indexed_urls`.
+- Logs every chat exchange into `chat_messages`.
+- Sanitizes model output before returning it to the frontend.
+- Keeps answer formatting shorter and more chat-friendly.
 
 ---
 
-### 3. `vector_store.py` – PGVector Store
+### 3. `backend/ingestion.py` – Fetching, Cleaning, and Chunking
 
 **What it uses**
 
-- LangChain’s `PGVector` integration from `langchain_community`.
-- A custom `WorkerEmbeddings` adapter that requests embeddings from the existing Cloudflare Worker endpoint.
+- `requests` with browser-like headers.
+- `BeautifulSoup` for HTML cleanup.
+- `RecursiveCharacterTextSplitter` for chunking.
+- Playwright fallback for modern pages that need client-side rendering.
 
 **What it does**
 
-- `get_vector_store(connection_string, table_name="url_embeddings")`:
-  - Instantiates a remote embedding client backed by the Cloudflare Worker.
-  - Calls `PGVector.from_texts(texts=[], embedding=embeddings, collection_name=table_name, connection_string=connection_string)` to configure the collection.
-  - Returns a vector store object that:
-    - Accepts `add_texts` during ingestion.
-    - Exposes `.as_retriever()` for semantic search at question time.
+- Downloads and cleans URL content.
+- Detects when a page needs browser rendering.
+- Splits long text into retrievable chunks.
+- Sends those chunks into the vector store with source metadata.
 
 ---
 
-### 4. `rag_chain.py` – RAG Chain and Cloudflare Worker LLM
+### 4. `backend/vector_store.py` – PGVector Store
 
 **What it uses**
 
-- `BaseLLM`, `LLMResult`, `Generation` from `langchain_core`.
-- `RetrievalQA` from LangChain (classic).
-- `PromptTemplate` for a carefully designed RAG prompt.
-- `requests` to call the Cloudflare Worker endpoint.
-
-**Custom LLM: `WorkerAILLM`**
-
-- Holds `endpoint: str` (Cloudflare Worker URL).
-- `_call(prompt, stop=None)`:
-  - POSTs `{"prompt": prompt}` to the Worker.
-  - Expects a JSON array and extracts the nested text response.
-- `_generate(prompts, stop=None, **kwargs)`:
-  - Calls `_call` for each prompt and wraps results in a proper `LLMResult`.
-
-**RAG chain: `create_rag_chain(retriever, ...)`**
-
-- Builds a prompt that:
-  - Treats the model as a **serious, concise research assistant**.
-  - Uses **only** the provided context.
-  - Avoids jokes and hallucinations.
-  - Structures the answer as:
-    - Short Answer
-    - Key Points
-    - Evidence from Sources
-    - Limitations
-- Creates a `RetrievalQA` chain with:
-  - `llm = WorkerAILLM(endpoint=...)`
-  - `retriever = vector_store.as_retriever()`
-  - `chain_type = "stuff"`
-  - `return_source_documents = True`
-
-At question time, this chain:
-
-1. Uses the retriever to pull the most relevant chunks from PGVector.
-2. Fills the prompt template with `CONTEXT` and `QUESTION`.
-3. Sends the final prompt to the Cloudflare Worker LLM.
-4. Returns the answer text plus the source documents for UI display.
-
----
-
-### 5. PostgreSQL + PGVector
-
-**What it uses**
-
-- A PostgreSQL database (e.g. `universal_url_research`).
-- PGVector extension enabled in that database.
-
-**Tables**
-
-- `indexed_urls` (managed by `app.py`):
-  - `id SERIAL PRIMARY KEY`
-  - `url TEXT NOT NULL`
-  - `indexed_content TEXT NOT NULL`
-  - `created_at TIMESTAMP DEFAULT NOW()`
-- `url_embeddings` (managed by the LangChain PGVector integration):
-  - Stores:
-    - Chunk text.
-    - Embedding vector.
-    - JSON metadata such as `{"url": "...", "chunk_index": ...}`.
-
----
-
-### 6. `worker.js` – Cloudflare Worker LLM Endpoint
-
-**What it uses**
-
-- Cloudflare Workers runtime.
-- `env.AI.run("@cf/meta/llama-3-8b-instruct", { prompt })` to access the LLM.
+- LangChain’s PGVector integration.
+- A custom embedding client backed by the Worker endpoint.
 
 **What it does**
 
-- Exposes an HTTP `fetch` handler that:
-  - Reads JSON from the request body and extracts `prompt`.
-  - Validates that `prompt` is a non-empty string.
-  - Calls `env.AI.run` with that prompt.
-  - Wraps the model output into a JSON response that `WorkerAILLM` expects.
-
-This ensures that **the RAG prompt constructed in Python is exactly what the model sees**, instead of any hard-coded joke prompt.
+- Stores chunk embeddings in PostgreSQL.
+- Preserves URL metadata per chunk for later citation.
+- Supports similarity search scoped to the active source URLs.
 
 ---
 
-## End-to-End Flow (How It Works)
+### 5. `backend/rag_chain.py` – Grounded Answer Generation
 
-1. **User opens the Streamlit app (`app.py`).**
-2. **User enters one or more URLs and clicks “Index Sources”.**
-   - `app.py`:
-     - Normalizes DB settings from `.env`.
-     - Builds the PGVector store and retriever.
-     - Builds and stores the RAG chain in session state.
-     - Ensures `indexed_urls` table exists.
-   - For each URL:
-     - `ingestion.index_url_into_vector_store`:
-       - Fetches HTML, cleans to text.
-       - Splits text into overlapping chunks.
-       - Embeds and stores chunks in the `url_embeddings` PGVector collection with URL metadata.
-     - `app.py` also inserts full cleaned text into `indexed_urls`.
-3. **User asks a question.**
-   - `app.py` calls `rag_chain({"query": question})`.
-   - `RetrievalQA`:
-     - Uses the retriever to select the most relevant chunks from PGVector.
-     - Builds a structured RAG prompt with those chunks as `CONTEXT`.
-     - Sends that prompt to the Cloudflare Worker LLM via `WorkerAILLM`.
-4. **Cloudflare Worker runs the LLM and returns a response.**
-   - The LLM generates a structured answer following the prompt’s instructions.
-   - `WorkerAILLM` parses the JSON, extracts the answer text, and returns it to the chain.
-5. **Streamlit shows the result.**
-   - Renders the answer (Short Answer, Key Points, Evidence, Limitations).
-   - Extracts URLs from `source_documents`, deduplicates them, and lists each unique source.
+**What it uses**
+
+- LangChain prompt templates.
+- A custom Worker AI LLM wrapper.
+- Recent chat history plus retrieved source chunks.
+
+**What it does**
+
+- Builds a grounded prompt that tells the model to answer only from retrieved context.
+- Uses chat history only for follow-up continuity, not as factual evidence.
+- Encourages shorter, cleaner answers for the chat interface.
+
+---
+
+### 6. PostgreSQL + pgvector
+
+**What it uses**
+
+- Supabase PostgreSQL.
+- pgvector collections created through the LangChain integration.
+
+**What it does**
+
+- Stores:
+  - `indexed_urls` for cleaned source content
+  - vector rows for semantic retrieval
+  - `chat_messages` for shared research logging across devices
+
+---
+
+### 7. `worker.js` – Cloudflare Workers AI Endpoint
+
+**What it uses**
+
+- Cloudflare Workers runtime
+- Workers AI for embeddings and answer generation
+
+**What it does**
+
+- Accepts prompts from the backend.
+- Generates embeddings for chunks during indexing.
+- Generates grounded answer text during chat.
+
+---
+
+## End-to-End Flow
+
+1. **A user opens the live React app.**
+2. **They add one or more URLs in the source modal and click Save.**
+3. **The backend fetches, cleans, chunks, and embeds each valid source.**
+4. **Embeddings are stored in PostgreSQL + pgvector with URL metadata.**
+5. **The user asks a question in the chat box.**
+6. **The backend retrieves the most relevant chunks from only the currently active URLs.**
+7. **The RAG prompt is sent to Worker AI for the final grounded answer.**
+8. **The backend cleans the reply, logs the exchange, and returns the answer plus source links.**
+9. **The frontend renders the answer in the chat view with source chips underneath.**
 
 ---
