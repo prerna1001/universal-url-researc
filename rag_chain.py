@@ -1,8 +1,7 @@
-from langchain_classic.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 from langchain_core.language_models import BaseLLM as LLM
 from langchain_core.outputs import LLMResult, Generation
-from typing import Optional, List
+from typing import Optional, List, Sequence, Mapping
 
 import os
 import requests
@@ -39,7 +38,9 @@ class WorkerAILLM(LLM):
             except (KeyError, IndexError) as e:
                 raise ValueError(f"Unexpected response structure: {response.text}") from e
         else:
-            raise ValueError(f"Worker AI API call failed with status {response.status_code}: {response.text}")
+            raise ValueError(
+                f"Worker AI API call failed with status {response.status_code}: {response.text}"
+            )
 
     def _generate(
         self,
@@ -58,26 +59,21 @@ class WorkerAILLM(LLM):
 
         return LLMResult(generations=generations)
 
-def create_rag_chain(retriever, model_name="llama-2-7b"):
-    """
-    Create a Retrieval-Augmented Generation (RAG) chain using LangChain.
+def get_worker_llm():
+    """Initialize the Worker AI LLM from the configured endpoint."""
+    endpoint = os.getenv("WORKER_ENDPOINT")
+    return WorkerAILLM(endpoint=endpoint)
 
-    Args:
-        retriever: A LangChain retriever for fetching relevant documents.
-        model_name (str): Name of the Llama model to use for generation.
 
-    Returns:
-        RetrievalQA: A LangChain RetrievalQA chain.
-    """
-    # Define a simpler prompt so answers feel like a natural chat reply.
-    prompt_template = PromptTemplate(
-        input_variables=["context", "question"],
+def get_rag_prompt_template():
+    """Return the grounded chat prompt template."""
+    return PromptTemplate(
+        input_variables=["context", "question", "chat_history"],
         template=(
             "You are a grounded research assistant inside a chat app.\n"
             "Answer the user's QUESTION using ONLY the CONTEXT.\n"
             "Rules:\n"
             "- Be direct, clear, and natural.\n"
-            "- Sound like a helpful chat reply, not a report.\n"
             "- Do not repeat instructions or mention formatting rules.\n"
             "- Do not invent facts beyond the context.\n"
             "- If the context is incomplete, say so briefly.\n"
@@ -88,6 +84,10 @@ def create_rag_chain(retriever, model_name="llama-2-7b"):
             "- If you have 3 or more distinct points, use a compact bullet list.\n"
             "- Never return one long unbroken wall of text.\n"
             "- Do not add headings like Short Answer, Key Points, Evidence, or Limitations.\n\n"
+            "Use CHAT HISTORY only to understand follow-up references like 'it', 'that', or "
+            "'the previous paper'. Do not treat chat history as factual source material.\n\n"
+            "CHAT HISTORY:\n"
+            "{chat_history}\n\n"
             "CONTEXT:\n"
             "{context}\n\n"
             "QUESTION:\n"
@@ -95,20 +95,66 @@ def create_rag_chain(retriever, model_name="llama-2-7b"):
             "Answer:"
         ),
     )
+ 
+
+def format_chat_history(
+    chat_history: Sequence[Mapping[str, str]] | None,
+    max_turns: int = 8,
+) -> str:
+    """Format the recent chat history for the model prompt."""
+    if not chat_history:
+        return "No prior chat."
+
+    recent_turns = list(chat_history)[-max_turns:]
+    lines: list[str] = []
+
+    for turn in recent_turns:
+        role = "User" if turn.get("role") == "user" else "Assistant"
+        content = (turn.get("content") or "").strip()
+        if not content:
+            continue
+        lines.append(f"{role}: {content}")
+
+    return "\n".join(lines) if lines else "No prior chat."
 
 
-    # Initialize the Worker AI LLM
-    # Read endpoint from environment for flexible deployment; fall back to default if unset.
-    endpoint = os.getenv("WORKER_ENDPOINT")
-    llm = WorkerAILLM(endpoint=endpoint)
+def build_context_block(source_docs) -> str:
+    """Convert retrieved documents into a compact context block."""
+    chunks: list[str] = []
 
-    # Create the RetrievalQA chain
-    rag_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=retriever,
-        chain_type="stuff",
-        chain_type_kwargs={"prompt": prompt_template},
-        return_source_documents=True,
+    for index, doc in enumerate(source_docs, start=1):
+        content = getattr(doc, "page_content", "").strip()
+        if not content:
+            continue
+
+        metadata = getattr(doc, "metadata", {}) or {}
+        url = metadata.get("url", "Unknown source")
+        chunks.append(f"[Source {index}] URL: {url}\n{content}")
+
+    return "\n\n".join(chunks).strip()
+
+
+def generate_grounded_answer(
+    llm: WorkerAILLM,
+    prompt_template: PromptTemplate,
+    question: str,
+    source_docs,
+    chat_history: Sequence[Mapping[str, str]] | None = None,
+) -> str:
+    """Generate a grounded answer from retrieved docs and recent chat turns."""
+    context = build_context_block(source_docs)
+    prompt = prompt_template.format(
+        context=context,
+        question=question,
+        chat_history=format_chat_history(chat_history),
     )
+    return llm.invoke(prompt)
 
-    return rag_chain
+
+def create_rag_chain(retriever, model_name="llama-2-7b"):
+    """Backward-compatible helper returning the prompt and LLM pieces."""
+    return {
+        "retriever": retriever,
+        "llm": get_worker_llm(),
+        "prompt_template": get_rag_prompt_template(),
+    }

@@ -38,10 +38,9 @@ export function indexSources(urls) {
   });
 }
 
-export function sendQuestion(question, activeUrls) {
+export function sendQuestion(question, activeUrls, chatHistory = []) {
   return request("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ question, activeUrls }),
+    body: JSON.stringify({ question, activeUrls, chatHistory }),
   });
 }
-

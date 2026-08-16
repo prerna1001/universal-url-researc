@@ -1,4 +1,5 @@
 import os
+import json
 from functools import lru_cache
 from typing import Any
 from urllib.parse import quote_plus
@@ -6,13 +7,13 @@ import re
 
 import psycopg2
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from ingestion import index_url_into_vector_store
-from rag_chain import create_rag_chain
+from rag_chain import generate_grounded_answer, get_rag_prompt_template, get_worker_llm
 from vector_store import get_vector_store
 
 
@@ -25,9 +26,15 @@ class IndexSourcesRequest(BaseModel):
     urls: list[str] = Field(default_factory=list)
 
 
+class ChatHistoryTurn(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1)
     active_urls: list[str] = Field(default_factory=list, alias="activeUrls")
+    chat_history: list[ChatHistoryTurn] = Field(default_factory=list, alias="chatHistory")
 
 
 class IndexReportItem(BaseModel):
@@ -113,6 +120,25 @@ def ensure_indexed_urls_table(conn) -> None:
                 id SERIAL PRIMARY KEY,
                 url TEXT NOT NULL,
                 indexed_content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+            """
+        )
+        conn.commit()
+
+
+def ensure_chat_messages_table(conn) -> None:
+    """Create the chat_messages table if it does not exist."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id SERIAL PRIMARY KEY,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                grounded BOOLEAN NOT NULL DEFAULT FALSE,
+                active_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+                source_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
                 created_at TIMESTAMP DEFAULT NOW()
             );
             """
@@ -224,11 +250,12 @@ def build_vector_store():
 
 @lru_cache(maxsize=1)
 def build_rag_stack():
-    """Instantiate the retriever and RAG chain."""
+    """Instantiate the retriever plus the shared model and prompt."""
     vector_store = build_vector_store()
     retriever = vector_store.as_retriever(search_kwargs={"k": 4})
-    rag_chain = create_rag_chain(retriever)
-    return vector_store, retriever, rag_chain
+    llm = get_worker_llm()
+    prompt_template = get_rag_prompt_template()
+    return vector_store, retriever, llm, prompt_template
 
 
 def extract_source_urls(source_docs) -> list[str]:
@@ -320,33 +347,27 @@ def sanitize_model_answer(answer: str) -> str:
 
 
 def list_active_sources() -> list[str]:
-    """Return the currently active source URLs from the vector store."""
-    conn = get_db_connection()
-    try:
-        return get_vector_indexed_urls(conn, COLLECTION_NAME, None)
-    finally:
-        conn.close()
+    """Return an empty list because visible active sources are session-local."""
+    return []
 
 
 def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
-    """Index the current URL set and keep only this run active."""
+    """Index the requested URLs without changing other browsers' source sets."""
     normalized_urls = normalize_urls(urls)
     report: list[dict[str, str]] = []
     active_urls: list[str] = []
 
     conn = get_db_connection()
     ensure_indexed_urls_table(conn)
+    ensure_chat_messages_table(conn)
 
     try:
-        delete_indexed_urls_except(conn, normalized_urls)
-        delete_vector_rows_except(conn, COLLECTION_NAME, normalized_urls)
-
         if not normalized_urls:
             report.append(
                 {
                     "state": "success",
                     "url": "",
-                    "message": "Cleared all active sources.",
+                    "message": "Cleared the active sources for this chat session.",
                 }
             )
             return active_urls, report
@@ -433,69 +454,129 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
     return active_urls, report
 
 
-def answer_question(question: str, expected_active_urls: list[str]) -> dict[str, Any]:
-    """Answer a question only when the current run is grounded."""
-    normalized_expected = normalize_urls(expected_active_urls)
-    db_active_urls = list_active_sources()
+def retrieve_docs_for_active_urls(question: str, active_urls: list[str]):
+    """Retrieve relevant docs only from the URLs active in this browser session."""
+    vector_store, _, _, _ = build_rag_stack()
+    docs = []
+    seen_keys: set[tuple[str, int | None, str]] = set()
 
-    if not db_active_urls:
-        return {
+    for url in active_urls:
+        matches = vector_store.similarity_search(question, k=4, filter={"url": url})
+        for doc in matches:
+            metadata = getattr(doc, "metadata", {}) or {}
+            key = (
+                metadata.get("url", ""),
+                metadata.get("chunk_index"),
+                getattr(doc, "page_content", ""),
+            )
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            docs.append(doc)
+
+    return docs
+
+
+def log_chat_message(
+    question: str,
+    answer: str,
+    grounded: bool,
+    active_urls: list[str],
+    source_urls: list[str],
+) -> None:
+    """Persist each chat exchange in the shared database log."""
+    conn = get_db_connection()
+    ensure_chat_messages_table(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO chat_messages (question, answer, grounded, active_urls, source_urls)
+                VALUES (%s, %s, %s, %s::jsonb, %s::jsonb)
+                """,
+                (
+                    question,
+                    answer,
+                    grounded,
+                    json.dumps(active_urls),
+                    json.dumps(source_urls),
+                ),
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
+def answer_question(
+    question: str,
+    expected_active_urls: list[str],
+    chat_history: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Answer a question using only the URLs active in this browser session."""
+    normalized_expected = normalize_urls(expected_active_urls)
+
+    if not normalized_expected:
+        result = {
             "answer": "I do not have any active indexed sources yet. Add and index URLs first.",
             "sources": [],
             "grounded": False,
             "activeUrls": [],
         }
+        log_chat_message(question, result["answer"], False, [], [])
+        return result
 
-    if normalized_expected and set(normalized_expected) != set(db_active_urls):
-        return {
-            "answer": (
-                "The source list in the browser does not match the backend's current indexed "
-                "set. Refresh sources and try again."
-            ),
-            "sources": [],
-            "grounded": False,
-            "activeUrls": db_active_urls,
-        }
-
-    _, retriever, rag_chain = build_rag_stack()
-    relevant_docs = retriever.invoke(question)
+    _, _, llm, prompt_template = build_rag_stack()
+    relevant_docs = retrieve_docs_for_active_urls(question, normalized_expected)
     relevant_docs = [
         doc for doc in relevant_docs if getattr(doc, "page_content", "").strip()
     ]
 
     if not relevant_docs:
-        return {
+        result = {
             "answer": (
                 "I could not retrieve any grounded passages for that question. Try a clearer "
                 "question, re-index the page, or switch to a source with richer visible text."
             ),
             "sources": [],
             "grounded": False,
-            "activeUrls": db_active_urls,
+            "activeUrls": normalized_expected,
         }
+        log_chat_message(question, result["answer"], False, normalized_expected, [])
+        return result
 
-    result = rag_chain({"query": question})
-    answer = sanitize_model_answer(result.get("result", "No answer returned."))
-    source_docs = result.get("source_documents") or relevant_docs
+    answer = sanitize_model_answer(
+        generate_grounded_answer(
+            llm=llm,
+            prompt_template=prompt_template,
+            question=question,
+            source_docs=relevant_docs,
+            chat_history=chat_history,
+        )
+    )
+    source_docs = relevant_docs
     source_urls = extract_source_urls(source_docs)
 
     if not source_urls:
-        return {
+        result = {
             "answer": (
                 "I retrieved context, but the result came back without usable source metadata, "
                 "so I am not treating the answer as grounded. Re-indexing the URL is the safest next step."
             ),
             "sources": [],
             "grounded": False,
-            "activeUrls": db_active_urls,
+            "activeUrls": normalized_expected,
         }
+        log_chat_message(question, result["answer"], False, normalized_expected, [])
+        return result
 
-    return {
+    result = {
         "answer": answer,
         "sources": source_urls,
         "grounded": True,
-        "activeUrls": db_active_urls,
+        "activeUrls": normalized_expected,
     }
+    log_chat_message(question, answer, True, normalized_expected, source_urls)
+    return result
 
 
 def get_allowed_origins() -> list[str]:
@@ -535,7 +616,15 @@ def post_sources_index(payload: IndexSourcesRequest):
 
 @app.post("/api/chat", response_model=ChatResponse)
 def post_chat(payload: ChatRequest):
-    result = answer_question(payload.question.strip(), payload.active_urls)
+    result = answer_question(
+        payload.question.strip(),
+        payload.active_urls,
+        [
+            {"role": turn.role, "content": turn.content}
+            for turn in payload.chat_history
+            if turn.content.strip()
+        ],
+    )
     return result
 
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { fetchSources, indexSources, sendQuestion } from "./api";
+import { indexSources, sendQuestion } from "./api";
+
+const CHAT_SESSION_STORAGE_KEY = "universal-url-research-chat-session-v1";
 
 function timestampLabel(date = new Date()) {
   return new Intl.DateTimeFormat("en-US", {
@@ -17,6 +19,7 @@ function buildWelcomeMessage(activeUrls) {
         "Your sources are ready. Ask a question and I’ll answer only from the URLs currently indexed here.",
       sources: activeUrls,
       time: timestampLabel(),
+      transient: true,
     };
   }
 
@@ -27,6 +30,7 @@ function buildWelcomeMessage(activeUrls) {
       "Hello! I can help you research topics using real-time information from your active sources. What would you like to explore today?",
     sources: [],
     time: timestampLabel(),
+    transient: true,
   };
 }
 
@@ -52,6 +56,49 @@ function hostLabel(url) {
   } catch {
     return url;
   }
+}
+
+function normalizeUrlSet(urls) {
+  return [...urls].map((url) => url.trim()).filter(Boolean).sort();
+}
+
+function sameUrlSet(left, right) {
+  const normalizedLeft = normalizeUrlSet(left);
+  const normalizedRight = normalizeUrlSet(right);
+
+  if (normalizedLeft.length !== normalizedRight.length) {
+    return false;
+  }
+
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
+function loadStoredSession() {
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_SESSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.messages) || !Array.isArray(parsed.activeUrls)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function buildChatHistoryPayload(messages) {
+  return messages
+    .filter((message) => !message.transient)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }))
+    .filter((message) => message.content.trim().length > 0);
 }
 
 function splitLongParagraph(text) {
@@ -219,20 +266,43 @@ export default function App() {
   const [appError, setAppError] = useState("");
 
   useEffect(() => {
-    async function loadSources() {
-      try {
-        const data = await fetchSources();
-        const urls = data.activeUrls || [];
-        setActiveSources(urls);
-        setSourceInputs(urls.length ? urls : [""]);
-        setMessages([buildWelcomeMessage(urls)]);
-      } catch (error) {
-        setAppError(error.message);
+    const storedSession = loadStoredSession();
+
+    if (storedSession && Array.isArray(storedSession.activeUrls)) {
+      const urls = storedSession.activeUrls || [];
+      setActiveSources(urls);
+      setSourceInputs(urls.length ? urls : [""]);
+
+      if (storedSession.messages.length) {
+        setMessages(storedSession.messages);
+        return;
       }
+
+      setMessages([buildWelcomeMessage(urls)]);
+      return;
     }
 
-    loadSources();
+    setActiveSources([]);
+    setSourceInputs([""]);
+    setMessages([buildWelcomeMessage([])]);
   }, []);
+
+  useEffect(() => {
+    const persistedMessages = messages.filter((message) => !message.transient);
+
+    if (!persistedMessages.length) {
+      window.sessionStorage.removeItem(CHAT_SESSION_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      CHAT_SESSION_STORAGE_KEY,
+      JSON.stringify({
+        activeUrls: activeSources,
+        messages: persistedMessages,
+      }),
+    );
+  }, [activeSources, messages]);
 
   function openSourcesModal() {
     setIndexError("");
@@ -283,6 +353,9 @@ export default function App() {
 
       setSourceInputs(nextActive.length ? nextActive : []);
       setMessages([buildWelcomeMessage(nextActive)]);
+      if (!nextActive.length) {
+        window.sessionStorage.removeItem(CHAT_SESSION_STORAGE_KEY);
+      }
       setTimeout(() => {
         setIsSourcesOpen(false);
       }, 250);
@@ -315,7 +388,11 @@ export default function App() {
     setIsSending(true);
 
     try {
-      const data = await sendQuestion(trimmedQuestion, activeSources);
+      const data = await sendQuestion(
+        trimmedQuestion,
+        activeSources,
+        buildChatHistoryPayload([...messages, userMessage]),
+      );
       const nextActive = data.activeUrls || activeSources;
 
       setActiveSources(nextActive);
