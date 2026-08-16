@@ -2,6 +2,7 @@ import os
 from functools import lru_cache
 from typing import Any
 from urllib.parse import quote_plus
+import re
 
 import psycopg2
 from dotenv import load_dotenv
@@ -245,6 +246,70 @@ def extract_source_urls(source_docs) -> list[str]:
     return unique_urls
 
 
+PROMPT_ECHO_PATTERNS = [
+    "You are a grounded research assistant inside a chat app.",
+    "Answer the user's QUESTION using ONLY the CONTEXT.",
+    "Rules:",
+    "CONTEXT:",
+    "QUESTION:",
+    "Answer:",
+]
+
+
+def sanitize_model_answer(answer: str) -> str:
+    """Strip leaked prompt instructions and obvious duplicated fallback text."""
+    cleaned = (answer or "").strip()
+
+    if not cleaned:
+        return "I couldn't find that in the indexed sources."
+
+    # If the model echoed the prompt, keep only the tail after the last explicit answer marker.
+    if "Answer:" in cleaned:
+        cleaned = cleaned.split("Answer:")[-1].strip()
+
+    lines = [line.rstrip() for line in cleaned.splitlines()]
+    filtered_lines: list[str] = []
+    skipping_prompt_block = False
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            if filtered_lines and filtered_lines[-1] != "":
+                filtered_lines.append("")
+            continue
+
+        if any(line.startswith(pattern) for pattern in PROMPT_ECHO_PATTERNS):
+            skipping_prompt_block = True
+            continue
+
+        if skipping_prompt_block and (
+            line.startswith("- ")
+            or line.startswith("* ")
+            or re.match(r"^\d+\.", line)
+        ):
+            continue
+
+        skipping_prompt_block = False
+        filtered_lines.append(line)
+
+    cleaned = "\n".join(filtered_lines).strip()
+
+    # Remove repeated fallback fragments if the model loops them.
+    fallback = "I couldn't find that in the indexed sources."
+    fallback_matches = re.findall(re.escape(fallback), cleaned)
+    if len(fallback_matches) > 1:
+        cleaned = re.sub(
+            rf"(?:\)?\s*{re.escape(fallback)})+",
+            fallback,
+            cleaned,
+        ).strip()
+
+    # Remove trailing note fragments that often appear after an echoed instruction block.
+    cleaned = re.sub(r"\(\s*Note:.*$", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
+
+    return cleaned or fallback
+
+
 def list_active_sources() -> list[str]:
     """Return the currently active source URLs from the vector store."""
     conn = get_db_connection()
@@ -401,7 +466,7 @@ def answer_question(question: str, expected_active_urls: list[str]) -> dict[str,
         }
 
     result = rag_chain({"query": question})
-    answer = result.get("result", "No answer returned.").strip()
+    answer = sanitize_model_answer(result.get("result", "No answer returned."))
     source_docs = result.get("source_documents") or relevant_docs
     source_urls = extract_source_urls(source_docs)
 
