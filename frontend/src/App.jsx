@@ -363,7 +363,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="source-empty-state">
-                  No sources in this set right now. Add one below or click Index Sources to clear everything.
+                  No sources in this set right now. Add one below or click Save to clear everything.
                 </div>
               )}
 
@@ -378,7 +378,7 @@ export default function App() {
                   Cancel
                 </button>
                 <button type="submit" className="index-button" disabled={isIndexing}>
-                  {isIndexing ? "Indexing..." : "Index Sources"}
+                  {isIndexing ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>
