@@ -283,6 +283,37 @@ PROMPT_ECHO_PATTERNS = [
 ]
 
 
+def dedupe_repeated_paragraphs(text: str) -> str:
+    """Drop repeated paragraphs while preserving the original order."""
+    paragraphs = [part.strip() for part in re.split(r"\n{2,}", text) if part.strip()]
+    seen_normalized: set[str] = set()
+    unique_paragraphs: list[str] = []
+
+    for paragraph in paragraphs:
+        normalized = re.sub(r"\s+", " ", paragraph).strip().lower()
+        if normalized in seen_normalized:
+            continue
+        seen_normalized.add(normalized)
+        unique_paragraphs.append(paragraph)
+
+    return "\n\n".join(unique_paragraphs)
+
+
+def trim_meta_tail(text: str) -> str:
+    """Remove note-like or fallback-like tails appended after a valid answer."""
+    patterns = [
+        r"\bNote:\s.*$",
+        r"\bSources?\s+used\s*$",
+        r"I couldn't find that in the indexed sources\..*$",
+    ]
+
+    trimmed = text
+    for pattern in patterns:
+        trimmed = re.sub(pattern, "", trimmed, flags=re.IGNORECASE | re.DOTALL).strip()
+
+    return trimmed
+
+
 def sanitize_model_answer(answer: str) -> str:
     """Strip leaked prompt instructions and obvious duplicated fallback text."""
     cleaned = (answer or "").strip()
@@ -321,6 +352,8 @@ def sanitize_model_answer(answer: str) -> str:
         filtered_lines.append(line)
 
     cleaned = "\n".join(filtered_lines).strip()
+    cleaned = trim_meta_tail(cleaned)
+    cleaned = dedupe_repeated_paragraphs(cleaned)
 
     # Remove repeated fallback fragments if the model loops them.
     fallback_matches = re.findall(re.escape(fallback), cleaned)
@@ -342,6 +375,7 @@ def sanitize_model_answer(answer: str) -> str:
 
     # Remove trailing note fragments that often appear after an echoed instruction block.
     cleaned = re.sub(r"\(\s*Note:.*$", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned).strip() if "\n" not in cleaned else cleaned.strip()
 
     return cleaned or fallback
 
