@@ -56,7 +56,7 @@ a {
 }
 
 .app-shell {
-  max-width: 1380px;
+  max-width: 1180px;
   margin: 0 auto;
   height: 100dvh;
   display: flex;
@@ -104,6 +104,8 @@ a {
 .source-strip {
   flex: 0 0 auto;
   padding: 22px 28px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .source-strip-label {
@@ -169,6 +171,9 @@ a {
   display: flex;
   flex-direction: column;
   padding: 34px 32px 26px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .chat-history {
@@ -205,7 +210,7 @@ a {
 }
 
 .message-stack {
-  max-width: min(820px, 78%);
+  max-width: min(700px, 72%);
 }
 
 .message-row-user .message-stack {
@@ -230,11 +235,28 @@ a {
 
 .message-content p {
   margin: 0 0 10px;
-  line-height: 1.52;
+  line-height: 1.7;
   font-size: 1.02rem;
+  overflow-wrap: anywhere;
 }
 
 .message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 0 0 12px;
+  padding-left: 1.35rem;
+  line-height: 1.7;
+}
+
+.message-content li {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.message-content li:last-child {
   margin-bottom: 0;
 }
 

@@ -54,8 +54,61 @@ function hostLabel(url) {
   }
 }
 
+function splitLongParagraph(text) {
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)?.map((part) => part.trim()).filter(Boolean) || [text];
+
+  if (sentences.length <= 3) {
+    return [text];
+  }
+
+  const chunks = [];
+
+  for (let index = 0; index < sentences.length; index += 2) {
+    chunks.push(sentences.slice(index, index + 2).join(" ").trim());
+  }
+
+  return chunks;
+}
+
+function buildContentBlocks(content) {
+  const normalized = content.replace(/\r\n/g, "\n").trim();
+
+  if (!normalized) {
+    return [];
+  }
+
+  const rawBlocks = normalized.split(/\n{2,}/).flatMap((block) => {
+    const trimmed = block.trim();
+
+    if (!trimmed) {
+      return [];
+    }
+
+    const lines = trimmed.split("\n").map((line) => line.trim()).filter(Boolean);
+    const isBulletList = lines.every((line) => /^[-*•]\s+/.test(line));
+    const isNumberedList = lines.every((line) => /^\d+\.\s+/.test(line));
+
+    if (isBulletList) {
+      return [{ type: "ul", items: lines.map((line) => line.replace(/^[-*•]\s+/, "").trim()) }];
+    }
+
+    if (isNumberedList) {
+      return [{ type: "ol", items: lines.map((line) => line.replace(/^\d+\.\s+/, "").trim()) }];
+    }
+
+    if (lines.length > 1) {
+      return lines.map((line) => ({ type: "p", text: line }));
+    }
+
+    return splitLongParagraph(trimmed).map((paragraph) => ({ type: "p", text: paragraph }));
+  });
+
+  return rawBlocks;
+}
+
 function MessageBubble({ message }) {
   const isUser = message.role === "user";
+  const blocks = buildContentBlocks(message.content);
 
   return (
     <div className={`message-row ${isUser ? "message-row-user" : ""}`}>
@@ -64,9 +117,29 @@ function MessageBubble({ message }) {
       <div className="message-stack">
         <div className={`message-bubble ${isUser ? "message-bubble-user" : ""}`}>
           <div className="message-content">
-            {message.content.split("\n").map((line, index) => (
-              <p key={`${message.id}-${index}`}>{line || "\u00A0"}</p>
-            ))}
+            {blocks.map((block, index) => {
+              if (block.type === "ul") {
+                return (
+                  <ul key={`${message.id}-ul-${index}`}>
+                    {block.items.map((item, itemIndex) => (
+                      <li key={`${message.id}-ul-${index}-${itemIndex}`}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+
+              if (block.type === "ol") {
+                return (
+                  <ol key={`${message.id}-ol-${index}`}>
+                    {block.items.map((item, itemIndex) => (
+                      <li key={`${message.id}-ol-${index}-${itemIndex}`}>{item}</li>
+                    ))}
+                  </ol>
+                );
+              }
+
+              return <p key={`${message.id}-p-${index}`}>{block.text}</p>;
+            })}
           </div>
 
           {!isUser && message.sources?.length > 0 ? (
