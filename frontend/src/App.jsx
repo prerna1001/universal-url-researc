@@ -115,11 +115,11 @@ function IndexStatus({ report, error }) {
       {report.length ? (
         <div className="index-report-list">
           {report.map((item) => (
-            <div className="index-report-item" key={`${item.state}-${item.url}`}>
+            <div className="index-report-item" key={`${item.state}-${item.url || "empty"}-${item.message}`}>
               <div className={`index-report-state index-report-state-${item.state}`}>
                 {item.state}
               </div>
-              <div className="index-report-url">{item.url}</div>
+              {item.url ? <div className="index-report-url">{item.url}</div> : null}
               <div className="index-report-message">{item.message}</div>
             </div>
           ))}
@@ -180,23 +180,12 @@ export default function App() {
   }
 
   function removeSourceInput(index) {
-    setSourceInputs((current) => {
-      if (current.length === 1) {
-        return [""];
-      }
-
-      return current.filter((_, entryIndex) => entryIndex !== index);
-    });
+    setSourceInputs((current) => current.filter((_, entryIndex) => entryIndex !== index));
   }
 
   async function handleIndexSources(event) {
     event.preventDefault();
     const urls = normalizeSourceInputs(sourceInputs);
-
-    if (!urls.length) {
-      setIndexError("Add at least one source URL before indexing.");
-      return;
-    }
 
     setIsIndexing(true);
     setIndexError("");
@@ -208,15 +197,12 @@ export default function App() {
       const nextReport = data.report || [];
 
       setActiveSources(nextActive);
-      setSourceInputs(nextActive.length ? nextActive : urls);
+      setSourceInputs(nextActive.length ? nextActive : []);
       setIndexReport(nextReport);
       setMessages([buildWelcomeMessage(nextActive)]);
-
-      if (nextActive.length) {
-        setTimeout(() => {
-          setIsSourcesOpen(false);
-        }, 250);
-      }
+      setTimeout(() => {
+        setIsSourcesOpen(false);
+      }, 250);
     } catch (error) {
       setIndexError(error.message);
     } finally {
@@ -344,26 +330,32 @@ export default function App() {
             </div>
 
             <form className="source-form" onSubmit={handleIndexSources}>
-              <div className="source-input-list">
-                {sourceInputs.map((value, index) => (
-                  <div className="source-input-row" key={`source-row-${index}`}>
-                    <input
-                      type="text"
-                      value={value}
-                      onChange={(event) => updateSourceInput(index, event.target.value)}
-                      placeholder={`https://example.com/source-${index + 1}`}
-                    />
-                    <button
-                      type="button"
-                      className="source-delete-button"
-                      onClick={() => removeSourceInput(index)}
-                      aria-label={`Delete source ${index + 1}`}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {sourceInputs.length ? (
+                <div className="source-input-list">
+                  {sourceInputs.map((value, index) => (
+                    <div className="source-input-row" key={`source-row-${index}`}>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(event) => updateSourceInput(index, event.target.value)}
+                        placeholder={`https://example.com/source-${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        className="source-delete-button"
+                        onClick={() => removeSourceInput(index)}
+                        aria-label={`Delete source ${index + 1}`}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="source-empty-state">
+                  No sources in this set right now. Add one below or click Index Sources to clear everything.
+                </div>
+              )}
 
               <button type="button" className="add-source-row-button" onClick={addSourceInput}>
                 + Add another source

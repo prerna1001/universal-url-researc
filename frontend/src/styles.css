@@ -386,6 +386,15 @@ a {
   gap: 18px;
 }
 
+.source-empty-state {
+  border: 1px dashed #d8ccb7;
+  border-radius: 20px;
+  padding: 18px 20px;
+  background: rgba(255, 252, 247, 0.72);
+  color: #697262;
+  line-height: 1.6;
+}
+
 .source-input-row {
   display: grid;
   grid-template-columns: 1fr 58px;

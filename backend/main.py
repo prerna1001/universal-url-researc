@@ -257,10 +257,6 @@ def list_active_sources() -> list[str]:
 def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
     """Index the current URL set and keep only this run active."""
     normalized_urls = normalize_urls(urls)
-    if not normalized_urls:
-        raise HTTPException(status_code=400, detail="Please provide at least one URL.")
-
-    vector_store = build_vector_store()
     report: list[dict[str, str]] = []
     active_urls: list[str] = []
 
@@ -270,6 +266,18 @@ def index_sources(urls: list[str]) -> tuple[list[str], list[dict[str, str]]]:
     try:
         delete_indexed_urls_except(conn, normalized_urls)
         delete_vector_rows_except(conn, COLLECTION_NAME, normalized_urls)
+
+        if not normalized_urls:
+            report.append(
+                {
+                    "state": "success",
+                    "url": "",
+                    "message": "Cleared all active sources.",
+                }
+            )
+            return active_urls, report
+
+        vector_store = build_vector_store()
         existing_vector_urls = set(
             get_vector_indexed_urls(conn, COLLECTION_NAME, normalized_urls)
         )
