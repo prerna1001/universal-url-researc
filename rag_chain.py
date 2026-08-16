@@ -69,11 +69,11 @@ def create_rag_chain(retriever, model_name="llama-2-7b"):
     Returns:
         RetrievalQA: A LangChain RetrievalQA chain.
     """
-    # Define the prompt template (MVP: serious, context-grounded, no jokes)
+    # Define the prompt template for a grounded web research assistant.
     prompt_template = PromptTemplate(
     input_variables=["context", "question"],
     template=(
-        "You are a concise, professional financial research assistant.\n"
+        "You are a concise, professional web research assistant.\n"
         "Use ONLY the information in the CONTEXT block to answer the QUESTION.\n"
         "- Do NOT invent facts or speculate beyond the context.\n"
         "- Do NOT make jokes, puns, or casual commentary.\n"

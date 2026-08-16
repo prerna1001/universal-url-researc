@@ -53,19 +53,19 @@ def split_into_chunks(text: str, chunk_size: int = 1000, chunk_overlap: int = 20
     return splitter.split_text(text)
 
 
-def index_url_into_vector_store(url: str, vector_store) -> str:
+def index_url_into_vector_store(url: str, vector_store) -> tuple[str, int]:
     """Fetch, chunk, and store a single URL into the vector store.
 
-    Returns the full cleaned page text for optional relational storage.
+    Returns the full cleaned page text and the number of stored chunks.
     """
 
     page_text = fetch_url_text(url)
     chunks = split_into_chunks(page_text)
 
     if not chunks:
-        return page_text
+        return page_text, 0
 
     metadatas = [{"url": url, "chunk_index": i} for i in range(len(chunks))]
     vector_store.add_texts(chunks, metadatas=metadatas)
 
-    return page_text
+    return page_text, len(chunks)
